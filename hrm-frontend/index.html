@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shnoor HRM — HR & Payroll Management System</title>
+    <meta name="description" content="Shnoor International LLC's HR management platform. Automate payroll, track attendance, manage leaves and multi-location teams." />
+    <link rel="preconnect" href="http://localhost:5001" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap"
+      />
+    </noscript>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#4F46E5" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; background: #F9FAFB; color: #111827; }
+      #root { min-height: 100vh; }
+      .initial-loader {
+        display: flex; align-items: center; justify-content: center;
+        min-height: 100vh; background: #F9FAFB;
+      }
+      .initial-loader__spinner {
+        width: 40px; height: 40px; border-radius: 50%;
+        border: 3px solid #EEF2FF; border-top-color: #4F46E5;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="initial-loader">
+        <div class="initial-loader__spinner"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
