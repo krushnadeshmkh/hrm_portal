@@ -3,7 +3,7 @@ const router = express.Router();
 
 const auth = require("../../middleware/authMiddleware");
 const roleCheck = require("../../middleware/roleCheck");
-const complaintController = require("./complaintController");
+const complaintController = require("./Complaintcontroller");
 
 router.post("/", auth, complaintController.raiseComplaint);
 router.get("/my", auth, complaintController.getMyComplaints);

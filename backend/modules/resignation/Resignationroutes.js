@@ -3,7 +3,7 @@ const router = express.Router();
 
 const auth = require("../../middleware/authMiddleware");
 const roleCheck = require("../../middleware/roleCheck");
-const resignationController = require("./resignationController");
+const resignationController = require("./Resignationcontroller");
 
 router.post("/", auth, resignationController.submitResignation);
 router.get("/my", auth, resignationController.getMyResignation);
