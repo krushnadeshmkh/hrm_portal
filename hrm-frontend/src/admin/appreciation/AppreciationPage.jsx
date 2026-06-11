@@ -9,7 +9,7 @@ import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
 import { useTheme } from "../../context/ThemeContext";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const BASE_URL = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
 const API = `${BASE_URL}/api/appreciations`;
 
 const appreciationTypes = [
@@ -215,10 +215,6 @@ const AppreciationPage = () => {
             <input className="search-inp" placeholder="Search anything..." style={{ width:"100%", padding:"8px 12px 8px 36px", border:`1.5px solid ${t.inputBorder}`, borderRadius:"10px", fontSize:"0.875rem", color:t.textPrimary, background:t.inputBg, fontFamily:"'DM Sans',sans-serif", outline:"none" }}/>
           </div>
           <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:"8px" }}>
-            <button style={{ width:"38px", height:"38px", borderRadius:"10px", border:`1.5px solid ${t.inputBorder}`, background:t.card, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:t.textSecondary, position:"relative" }}>
-              <Bell size={17}/>
-              <span style={{ position:"absolute", top:"8px", right:"8px", width:"7px", height:"7px", borderRadius:"50%", background:"#EF4444", border:`1.5px solid ${t.card}` }}/>
-            </button>
             <div style={{ display:"flex", alignItems:"center", gap:"9px", padding:"5px 12px 5px 6px", border:`1.5px solid ${t.inputBorder}`, borderRadius:"10px", background:t.card, cursor:"pointer" }}>
               <div style={{ width:"28px", height:"28px", borderRadius:"50%", background:"linear-gradient(135deg,#4F46E5,#7C3AED)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:"0.72rem", fontWeight:"600" }}>{name.slice(0,2).toUpperCase()}</div>
               <span style={{ fontSize:"0.83rem", fontWeight:"500", color:t.textPrimary }}>{name}</span>

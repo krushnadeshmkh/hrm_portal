@@ -71,7 +71,7 @@ function AdvanceRequests() {
   }, []);
 
   const sidebarWidth = isMobile ? 0 : isOpen ? 255 : 68;
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+  const API_URL = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
 
   const fetchRequests = async () => {
     try {
@@ -228,14 +228,6 @@ function AdvanceRequests() {
             />
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-            <button className="topbar-btn" style={{
-              width: "38px", height: "38px", borderRadius: "10px",
-              border: `1.5px solid ${t.inputBorder}`, background: t.card,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: t.textSecondary, position: "relative",
-            }}>
-              <span style={{ position: "absolute", top: "8px", right: "8px", width: "7px", height: "7px", borderRadius: "50%", background: "#EF4444", border: `1.5px solid ${t.card}` }} />
-            </button>
             <div style={{
               display: "flex", alignItems: "center", gap: "9px",
               padding: "5px 12px 5px 6px",

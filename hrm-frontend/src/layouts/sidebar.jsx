@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, Clock, Palmtree, CalendarRange,
@@ -7,9 +7,16 @@ import {
   ClipboardList, Mail, ArrowLeftRight, X,
   UserPen, HandCoins, TrendingUp, Receipt, FileText,
   AlertTriangle, DoorOpen, MessageSquareWarning, Sun, Moon,
-  MessageCircle
+  MessageCircle, Bell
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import {
+  useSocket,
+  subscribeToGlobalUnread,
+  subscribeToGlobalNotifications,
+  clearAllNotifications,
+  resetUnreadForSender,
+} from "../hook/useSocket";
 
 const ALL_MENU_ITEMS = [
   { name: "Manager Dashboard", path: "/dashboard", icon: <LayoutDashboard size={17} />, roles: ["manager"] },
@@ -48,7 +55,7 @@ const ALL_MENU_ITEMS = [
   { name: "Appreciation", path: "/appreciation", icon: <UserPlus size={17} />, roles: ["manager"] },
   { name: "Letters", path: "/letter", icon: <ClipboardList size={17} />, roles: ["manager"] },
   { name: "Policies", path: "/policy", icon: <Mail size={17} />, roles: ["manager"] },
-   { name: "Chat", path: "/chat", icon: <MessageCircle size={17} />, roles: ["manager", "employee"] },
+  { name: "Chat", path: "/chat", icon: <MessageCircle size={17} />, roles: ["manager", "employee"] },
 ];
 
 const ROLE_LABELS = {
@@ -82,6 +89,7 @@ const SB_STYLES = (isDark) => `
     --sb-shadow-mobile: ${isDark ? "4px 0 24px rgba(0,0,0,0.5)" : "4px 0 24px rgba(15,23,42,0.15)"};
     --sb-logo-text: ${isDark ? "#E0E7FF" : "#111827"};
     --sb-brand-badge: ${isDark ? "linear-gradient(135deg,#312E81,#4F46E5)" : "linear-gradient(135deg,#1E1B4B,#4F46E5)"};
+    --sb-notif-shadow: ${isDark ? "0 20px 60px rgba(0,0,0,0.55), 0 4px 20px rgba(0,0,0,0.35)" : "0 20px 60px rgba(15,23,42,0.18), 0 4px 20px rgba(15,23,42,0.1)"};
   }
 
   .sb-nav-link { transition: background 0.15s, color 0.15s; }
@@ -92,10 +100,24 @@ const SB_STYLES = (isDark) => `
   .sb-scroll::-webkit-scrollbar { width: 4px; }
   .sb-scroll::-webkit-scrollbar-track { background: transparent; }
   .sb-scroll::-webkit-scrollbar-thumb { background: ${isDark ? "#2D3748" : "#E5E7EB"}; border-radius: 4px; }
+  .sb-notif-scroll::-webkit-scrollbar { width: 3px; }
+  .sb-notif-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sb-notif-scroll::-webkit-scrollbar-thumb { background: ${isDark ? "#2D3748" : "#E5E7EB"}; border-radius: 4px; }
   @keyframes badgePulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+  @keyframes badgePop { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+  @keyframes notifSlideIn { from{opacity:0;transform:translateY(-8px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
   .preview-badge { animation: badgePulse 2.5s ease-in-out infinite; }
   .view-tab { transition: all 0.2s ease; }
   .view-tab:hover { opacity: 0.85; }
+  .sb-chat-badge { animation: badgePop 0.2s ease; }
+  .sb-bell-btn { transition: background 0.15s, color 0.15s; }
+  .sb-bell-btn:hover { background: var(--sb-hover-bg) !important; color: var(--sb-active-icon) !important; }
+  .sb-notif-item { transition: background 0.13s; }
+  .sb-notif-item:hover { background: var(--sb-hover-bg) !important; }
+  .sb-notif-panel {
+    animation: notifSlideIn 0.18s cubic-bezier(0.16,1,0.3,1);
+    transform-origin: top left;
+  }
   .sb-overlay {
     display: none;
     position: fixed;
@@ -185,15 +207,211 @@ const UserAvatar = ({ size = 36, initials, avatarUrl, showBadge = false, isDark 
   );
 };
 
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+const NotificationPanel = ({ notifications, onNotifClick, onClearAll, panelRef, position, isMobile, isDark }) => {
+  return (
+    <div
+      ref={panelRef}
+      className="sb-notif-panel"
+      style={{
+        position: "fixed",
+        top: position.top,
+        left: position.left,
+        width: isMobile ? `calc(100vw - 24px)` : "316px",
+        maxHeight: "420px",
+        background: isDark ? "#161B27" : "#fff",
+        border: `1px solid ${isDark ? "#1E2535" : "#E5E7EB"}`,
+        borderRadius: "14px",
+        boxShadow: isDark
+          ? "0 20px 60px rgba(0,0,0,0.55), 0 4px 20px rgba(0,0,0,0.35)"
+          : "0 20px 60px rgba(15,23,42,0.18), 0 4px 20px rgba(15,23,42,0.1)",
+        zIndex: 99999,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "14px 16px",
+        borderBottom: `1px solid ${isDark ? "#1E2535" : "#F1F3F9"}`,
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Bell size={15} style={{ color: isDark ? "#818CF8" : "#4F46E5" }} />
+          <span style={{ fontSize: "0.88rem", fontWeight: "600", color: isDark ? "#F3F4F6" : "#111827" }}>
+            Notifications
+          </span>
+          {notifications.filter(n => !n.read).length > 0 && (
+            <span style={{
+              background: isDark ? "rgba(99,102,241,0.2)" : "#EEF2FF",
+              color: isDark ? "#818CF8" : "#4F46E5",
+              fontSize: "0.68rem",
+              fontWeight: "700",
+              padding: "2px 7px",
+              borderRadius: "20px",
+            }}>
+              {notifications.filter(n => !n.read).length} new
+            </span>
+          )}
+        </div>
+        {notifications.length > 0 && (
+          <button
+            onClick={onClearAll}
+            style={{
+              background: "none",
+              border: "none",
+              color: isDark ? "#818CF8" : "#4F46E5",
+              fontSize: "0.74rem",
+              fontWeight: "600",
+              cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif",
+              padding: "4px 8px",
+              borderRadius: "6px",
+              transition: "background 0.13s",
+            }}
+          >
+            Mark all read
+          </button>
+        )}
+      </div>
+
+      <div
+        className="sb-notif-scroll"
+        style={{ overflowY: "auto", flex: 1 }}
+      >
+        {notifications.length === 0 ? (
+          <div style={{
+            padding: "40px 16px",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "10px",
+          }}>
+            <div style={{
+              width: "44px",
+              height: "44px",
+              borderRadius: "12px",
+              background: isDark ? "rgba(99,102,241,0.12)" : "#EEF2FF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <Bell size={20} style={{ color: isDark ? "#818CF8" : "#4F46E5" }} />
+            </div>
+            <span style={{ fontSize: "0.82rem", color: isDark ? "#6B7280" : "#9CA3AF", fontWeight: "500" }}>
+              You're all caught up
+            </span>
+          </div>
+        ) : (
+          notifications.map((notif) => (
+            <div
+              key={notif.id}
+              className="sb-notif-item"
+              onClick={() => onNotifClick(notif)}
+              style={{
+                display: "flex",
+                gap: "11px",
+                padding: "11px 16px",
+                cursor: "pointer",
+                borderBottom: `1px solid ${isDark ? "rgba(30,37,53,0.8)" : "#F9FAFB"}`,
+                background: notif.read
+                  ? "transparent"
+                  : isDark ? "rgba(99,102,241,0.07)" : "rgba(99,102,241,0.04)",
+                alignItems: "flex-start",
+              }}
+            >
+              <UserAvatar
+                size={34}
+                initials={notif.sender_name.slice(0, 2).toUpperCase()}
+                isDark={isDark}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "6px",
+                  marginBottom: "2px",
+                }}>
+                  <span style={{
+                    fontSize: "0.82rem",
+                    fontWeight: "600",
+                    color: isDark ? "#F3F4F6" : "#111827",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}>
+                    {notif.sender_name}
+                  </span>
+                  <span style={{
+                    fontSize: "0.68rem",
+                    color: isDark ? "#6B7280" : "#9CA3AF",
+                    flexShrink: 0,
+                  }}>
+                    {timeAgo(notif.created_at)}
+                  </span>
+                </div>
+                <div style={{
+                  fontSize: "0.78rem",
+                  color: isDark ? "#9CA3AF" : "#6B7280",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}>
+                  {notif.content}
+                </div>
+              </div>
+              {!notif.read && (
+                <span style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  background: "#4F46E5",
+                  flexShrink: 0,
+                  marginTop: "7px",
+                }} />
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { isDark, toggleTheme } = useTheme();
 
+  useSocket();
+
   const trueRole = localStorage.getItem("true_role");
   const name = localStorage.getItem("name") || "Administrator";
   const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem("avatar") || "");
+  const [totalUnread, setTotalUnread] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [notifPanelPos, setNotifPanelPos] = useState({ top: 0, left: 0 });
+  const notifPanelRef = useRef(null);
+  const bellBtnRef = useRef(null);
 
   useEffect(() => {
     const syncAvatar = () => {
@@ -202,6 +420,43 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     window.addEventListener("storage", syncAvatar);
     return () => window.removeEventListener("storage", syncAvatar);
   }, []);
+
+  useEffect(() => {
+    const unsub = subscribeToGlobalUnread((map) => {
+      const total = Object.values(map).reduce((a, b) => a + b, 0);
+      setTotalUnread(total);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = subscribeToGlobalNotifications((list) => {
+      setNotifications(list);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        notifPanelRef.current &&
+        !notifPanelRef.current.contains(e.target) &&
+        bellBtnRef.current &&
+        !bellBtnRef.current.contains(e.target)
+      ) {
+        setShowNotifPanel(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!showNotifPanel) return;
+    const handleScroll = () => setShowNotifPanel(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [showNotifPanel]);
 
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("role"));
 
@@ -228,6 +483,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const sidebarVisible = isMobile ? isOpen : true;
   const sidebarExpanded = isMobile ? true : isOpen;
 
+  const unreadNotifCount = notifications.filter(n => !n.read).length;
+
   const handleViewSwitch = useCallback(() => {
     const next = viewMode === "manager" ? "employee" : "manager";
     localStorage.setItem("role", next);
@@ -249,6 +506,43 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     if (isMobile) setIsOpen(false);
   }, [isMobile, setIsOpen]);
 
+  const handleBellClick = useCallback(() => {
+    if (!showNotifPanel && bellBtnRef.current) {
+      const rect = bellBtnRef.current.getBoundingClientRect();
+      const panelWidth = isMobile ? window.innerWidth - 24 : 316;
+      const spaceRight = window.innerWidth - rect.left;
+      const spaceLeft = rect.right;
+
+      let left;
+      if (isMobile) {
+        left = 12;
+      } else if (spaceRight >= panelWidth + 8) {
+        left = rect.right + 8;
+      } else {
+        left = Math.max(8, rect.left - panelWidth - 8);
+      }
+
+      const top = Math.min(
+        rect.bottom + 6,
+        window.innerHeight - 430
+      );
+
+      setNotifPanelPos({ top, left });
+    }
+    setShowNotifPanel(prev => !prev);
+  }, [showNotifPanel, isMobile]);
+
+  const handleNotifClick = useCallback((notif) => {
+    resetUnreadForSender(notif.sender_id);
+    setShowNotifPanel(false);
+    navigate("/chat");
+    if (isMobile) setIsOpen(false);
+  }, [navigate, isMobile, setIsOpen]);
+
+  const handleClearAll = useCallback(() => {
+    clearAllNotifications();
+  }, []);
+
   return (
     <>
       <style>{SB_STYLES(isDark)}</style>
@@ -256,6 +550,29 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         className={`sb-overlay${isMobile && isOpen ? " active" : ""}`}
         onClick={() => setIsOpen(false)}
       />
+
+      {showNotifPanel && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99998,
+          }}
+          onClick={() => setShowNotifPanel(false)}
+        />
+      )}
+
+      {showNotifPanel && (
+        <NotificationPanel
+          notifications={notifications}
+          onNotifClick={handleNotifClick}
+          onClearAll={handleClearAll}
+          panelRef={notifPanelRef}
+          position={notifPanelPos}
+          isMobile={isMobile}
+          isDark={isDark}
+        />
+      )}
 
       <nav
         style={{
@@ -325,7 +642,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           display: "flex",
           alignItems: "center",
           justifyContent: sidebarExpanded ? "flex-start" : "center",
-          gap: "10px",
+          gap: "8px",
           flexShrink: 0,
         }}>
           <UserAvatar
@@ -337,7 +654,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           />
 
           {sidebarExpanded && (
-            <div style={{ overflow: "hidden" }}>
+            <div style={{ overflow: "hidden", flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "0.82rem", fontWeight: "600", color: "var(--sb-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {name}
               </div>
@@ -346,6 +663,47 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               </div>
             </div>
           )}
+
+          <button
+            ref={bellBtnRef}
+            className="sb-bell-btn"
+            onClick={handleBellClick}
+            style={{
+              width: "34px", height: "34px", borderRadius: "9px",
+              border: "none", background: showNotifPanel ? "var(--sb-hover-bg)" : "transparent",
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: showNotifPanel ? "var(--sb-active-icon)" : "var(--sb-icon)",
+              position: "relative",
+              flexShrink: 0,
+            }}
+          >
+            <Bell size={17} />
+            {unreadNotifCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-3px",
+                  right: "-3px",
+                  minWidth: "16px",
+                  height: "16px",
+                  padding: "0 3px",
+                  borderRadius: "20px",
+                  background: "#EF4444",
+                  color: "#fff",
+                  fontSize: "9px",
+                  fontWeight: "700",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1.5px solid var(--sb-bg)",
+                  lineHeight: 1,
+                }}
+              >
+                {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {trueRole === "manager" && (
@@ -426,6 +784,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const isChat = item.path === "/chat";
+              const showBadge = isChat && totalUnread > 0;
+
               return (
                 <li key={item.path}>
                   <Link
@@ -450,11 +811,74 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                         width: "3px", borderRadius: "0 3px 3px 0", background: "#4F46E5",
                       }} />
                     )}
-                    <span className="sb-icon" style={{ color: isActive ? "var(--sb-active-icon)" : "var(--sb-icon)", flexShrink: 0, display: "flex" }}>
+
+                    <span
+                      className="sb-icon"
+                      style={{
+                        color: isActive ? "var(--sb-active-icon)" : "var(--sb-icon)",
+                        flexShrink: 0,
+                        display: "flex",
+                        position: "relative",
+                      }}
+                    >
                       {item.icon}
+                      {showBadge && !sidebarExpanded && (
+                        <span
+                          className="sb-chat-badge"
+                          style={{
+                            position: "absolute",
+                            top: "-5px",
+                            right: "-5px",
+                            minWidth: "16px",
+                            height: "16px",
+                            borderRadius: "20px",
+                            background: "#EF4444",
+                            color: "#fff",
+                            fontSize: "9px",
+                            fontWeight: "700",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "0 3px",
+                            lineHeight: 1,
+                            border: "1.5px solid var(--sb-bg)",
+                          }}
+                        >
+                          {totalUnread > 99 ? "99+" : totalUnread}
+                        </span>
+                      )}
                     </span>
-                    {sidebarExpanded && <span style={{ whiteSpace: "nowrap" }}>{item.name}</span>}
-                    {sidebarExpanded && isActive && <ChevronRight size={13} style={{ marginLeft: "auto", color: "var(--sb-active-icon)" }} />}
+
+                    {sidebarExpanded && (
+                      <>
+                        <span style={{ whiteSpace: "nowrap", flex: 1 }}>{item.name}</span>
+                        {showBadge && (
+                          <span
+                            className="sb-chat-badge"
+                            style={{
+                              minWidth: "20px",
+                              height: "20px",
+                              borderRadius: "20px",
+                              background: "#EF4444",
+                              color: "#fff",
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "0 5px",
+                              lineHeight: 1,
+                              marginLeft: "auto",
+                            }}
+                          >
+                            {totalUnread > 99 ? "99+" : totalUnread}
+                          </span>
+                        )}
+                        {!showBadge && isActive && (
+                          <ChevronRight size={13} style={{ marginLeft: "auto", color: "var(--sb-active-icon)" }} />
+                        )}
+                      </>
+                    )}
                   </Link>
                 </li>
               );

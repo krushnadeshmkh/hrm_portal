@@ -5,7 +5,7 @@ import { ClipboardList, User, Calendar, AlertCircle, CheckCircle, Plus, Users } 
 import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
 
 const statusColors = {
   pending: { bg: "#FEF3C7", color: "#92400E", label: "Pending" },

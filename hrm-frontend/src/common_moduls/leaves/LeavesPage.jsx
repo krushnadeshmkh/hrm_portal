@@ -72,7 +72,7 @@ const Leaves = () => {
     else setIsRefreshing(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5001/api/leaves", {
+      const res = await axios.get("https://hrm-backend-vvqg.onrender.com/api/leaves", {
         headers: { "x-auth-token": token },
       });
       setLeaveRequests(res.data.data || []);
@@ -92,7 +92,7 @@ const Leaves = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:5001/api/leaves/approve/${id}`,
+        `https://hrm-backend-vvqg.onrender.com/api/leaves/approve/${id}`,
         { status },
         { headers: { "x-auth-token": token } }
       );
@@ -107,7 +107,7 @@ const Leaves = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:5001/api/leaves/apply",
+        "https://hrm-backend-vvqg.onrender.com/api/leaves/apply",
         { leave_type: leaveType, start_date: startDate, end_date: endDate, reason },
         { headers: { "x-auth-token": token } }
       );
@@ -206,9 +206,7 @@ const Leaves = () => {
             />
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-            <button className="topbar-btn" style={{ width: "36px", height: "36px", borderRadius: "9px", border: `1.5px solid ${t.inputBorder}`, background: t.card, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: t.textSecondary, position: "relative" }}>
-              <span style={{ position: "absolute", top: "7px", right: "7px", width: "6px", height: "6px", borderRadius: "50%", background: "#EF4444", border: `1.5px solid ${t.card}` }} />
-            </button>
+
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 11px 4px 5px", border: `1.5px solid ${t.inputBorder}`, borderRadius: "9px", background: t.card, cursor: "pointer" }}>
               <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "linear-gradient(135deg,#4F46E5,#7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.7rem", fontWeight: "600" }}>
                 {name.slice(0, 2).toUpperCase()}

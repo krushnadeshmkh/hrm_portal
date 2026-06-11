@@ -8,7 +8,7 @@ import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
 import { useTheme } from "../../context/ThemeContext";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
 
 function AddEmployee() {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
@@ -255,14 +255,6 @@ function AddEmployee() {
             />
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              className="topbar-btn"
-              aria-label="Notifications"
-              style={{ width: "38px", height: "38px", borderRadius: "10px", border: `1.5px solid ${t.inputBorder}`, background: t.card, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: t.textSecondary, position: "relative" }}
-            >
-              <Bell size={17} aria-hidden="true" />
-              <span aria-label="You have new notifications" style={{ position: "absolute", top: "8px", right: "8px", width: "7px", height: "7px", borderRadius: "50%", background: "#EF4444", border: `1.5px solid ${t.card}` }} />
-            </button>
             <div
               aria-label={`Logged in as ${name}`}
               style={{ display: "flex", alignItems: "center", gap: "9px", padding: "5px 12px 5px 6px", border: `1.5px solid ${t.inputBorder}`, borderRadius: "10px", background: t.card, cursor: "pointer" }}

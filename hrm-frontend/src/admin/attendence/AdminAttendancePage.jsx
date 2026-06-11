@@ -68,7 +68,7 @@ const AdminAttendancePage = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        "http://localhost:5001/api/attendance/all",
+        "https://hrm-backend-vvqg.onrender.com/api/attendance/all",
         { headers: { "x-auth-token": token } }
       );
       const raw = res.data;
@@ -184,19 +184,6 @@ const AdminAttendancePage = () => {
             />
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-            <button className="topbar-btn" style={{
-              width: "38px", height: "38px", borderRadius: "10px",
-              border: `1.5px solid ${t.inputBorder}`, background: t.card,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: t.textSecondary, position: "relative",
-            }}>
-              <Bell size={17} />
-              <span style={{
-                position: "absolute", top: "8px", right: "8px",
-                width: "7px", height: "7px", borderRadius: "50%",
-                background: "#EF4444", border: `1.5px solid ${t.card}`,
-              }} />
-            </button>
             <div style={{
               display: "flex", alignItems: "center", gap: "9px",
               padding: "5px 12px 5px 6px",

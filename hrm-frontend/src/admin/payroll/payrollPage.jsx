@@ -92,7 +92,7 @@ function Payroll() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5001/api/payroll", {
+      const res = await axios.get("https://hrm-backend-vvqg.onrender.com/api/payroll", {
         headers: { "x-auth-token": token },
       });
       setPayrollData(res.data.data || []);
@@ -106,7 +106,7 @@ function Payroll() {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5001/api/employees", {
+      const res = await axios.get("https://hrm-backend-vvqg.onrender.com/api/employees", {
         headers: { "x-auth-token": token },
       });
       setEmployees(res.data.data || []);
@@ -142,7 +142,7 @@ function Payroll() {
     if (!payrollId) { alert("No payment record found to download."); return; }
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`http://localhost:5001/api/payroll/download/${payrollId}`, {
+      const res = await axios.get(`https://hrm-backend-vvqg.onrender.com/api/payroll/download/${payrollId}`, {
         headers: { "x-auth-token": token },
       });
       const data = res.data.data;
@@ -330,7 +330,7 @@ function Payroll() {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:5001/api/payroll/generate",
+        "https://hrm-backend-vvqg.onrender.com/api/payroll/generate",
         {
           employee_id: selectedEmp,
           salary: parseFloat(salary),
@@ -432,9 +432,6 @@ function Payroll() {
               style={{ width: "100%", padding: "8px 12px 8px 36px", border: `1.5px solid ${t.inputBorder}`, borderRadius: "10px", fontSize: "0.875rem", color: t.textPrimary, backgroundColor: t.inputBg }} />
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-            <button className="topbar-btn" style={{ width: "38px", height: "38px", borderRadius: "10px", border: `1.5px solid ${t.inputBorder}`, background: t.card, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: t.textSecondary, position: "relative" }}>
-              <span style={{ position: "absolute", top: "8px", right: "8px", width: "7px", height: "7px", borderRadius: "50%", background: "#EF4444", border: `1.5px solid ${t.card}` }} />
-            </button>
             <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "5px 12px 5px 6px", border: `1.5px solid ${t.inputBorder}`, borderRadius: "10px", background: t.card, cursor: "pointer" }}>
               <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg, #4F46E5, #7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.72rem", fontWeight: "600" }}>
                 {name.slice(0, 2).toUpperCase()}

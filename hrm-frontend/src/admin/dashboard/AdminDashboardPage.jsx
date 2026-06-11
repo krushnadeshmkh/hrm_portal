@@ -60,8 +60,8 @@ const Dashboard = () => {
         const token = localStorage.getItem("token");
         const headers = { "x-auth-token": token };
         const [sumRes, empRes] = await Promise.all([
-          axios.get("http://localhost:5001/api/dashboard/summary", { headers }),
-          axios.get("http://localhost:5001/api/employees", { headers }),
+          axios.get("https://hrm-backend-vvqg.onrender.com/api/dashboard/summary", { headers }),
+          axios.get("https://hrm-backend-vvqg.onrender.com/api/employees", { headers }),
         ]);
 
         setStatsData(sumRes.data.data || {});
@@ -151,15 +151,6 @@ const Dashboard = () => {
             />
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              aria-label="View notifications"
-              title="Notifications"
-              className="topbar-btn"
-              style={{ width: "38px", height: "38px", borderRadius: "10px", border: `1.5px solid ${t.inputBorder}`, background: t.card, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: t.textSecondary, position: "relative" }}
-            >
-              <Bell size={17} />
-              <span style={{ position: "absolute", top: "8px", right: "8px", width: "7px", height: "7px", borderRadius: "50%", background: "#EF4444", border: `1.5px solid ${t.card}` }} />
-            </button>
             <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "5px 12px 5px 6px", border: `1.5px solid ${t.inputBorder}`, borderRadius: "10px", background: t.card, cursor: "pointer" }}>
               <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg, #4F46E5, #7C3AED)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.72rem", fontWeight: "600" }}>
                 {name.slice(0, 2).toUpperCase()}

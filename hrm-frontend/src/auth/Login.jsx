@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, ArrowRight, Shield, Zap, Users } from "lucide-react";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
 
 function Login() {
   const [email, setEmail] = useState("");

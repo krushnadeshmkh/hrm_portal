@@ -3,15 +3,15 @@ import axios from "axios";
 import Sidebar from "../layouts/sidebar";
 import MobileTopBar from "../employee/MobileTopBar";
 import { useTheme } from "../context/ThemeContext";
-import { useSocket } from "../hook/useSocket";
+import { useSocket, subscribeToGlobalUnread, resetUnreadForSender } from "../hook/useSocket";
 import {
   Search, Send, MessageSquare, Circle, CheckCheck, Check,
   MoreVertical, ArrowLeft, Paperclip, X, Download,
   FileText, Film, Music, Trash2, Reply, CornerUpLeft
 } from "lucide-react";
 
-const API = "http://localhost:5001/api";
-const BASE_URL = "http://localhost:5001";
+const API = "https://hrm-backend-vvqg.onrender.com/api";
+const BASE_URL = "https://hrm-backend-vvqg.onrender.com";
 
 const EMOJI_LIST = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🎉"];
 const MESSAGES_PER_PAGE = 30;
@@ -177,6 +177,20 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    const unsub = subscribeToGlobalUnread((map) => {
+      setUnreadMap((prev) => {
+        const next = { ...prev };
+        Object.entries(map).forEach(([id, count]) => {
+          if (activeRef.current?.user_id?.toString() === id) return;
+          next[id] = count;
+        });
+        return next;
+      });
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (e) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
         setContextMenu(null);
@@ -213,8 +227,6 @@ export default function ChatPage() {
       if (activeRef.current?.user_id?.toString() === sid) {
         setMessages(p => [...p, msg]);
         socket.emit("mark_read", { sender_id: sid });
-      } else {
-        setUnreadMap(p => ({ ...p, [sid]: (p[sid] ?? 0) + 1 }));
       }
     };
 
@@ -320,6 +332,9 @@ export default function ChatPage() {
     setHasMoreMessages(true);
     loadingCountRef.current = 0;
 
+    resetUnreadForSender(activeContact.user_id.toString());
+    setUnreadMap(p => ({ ...p, [activeContact.user_id]: 0 }));
+
     axios
       .get(
         `${API}/chat/messages/${activeContact.user_id}?offset=0&limit=${MESSAGES_PER_PAGE}`,
@@ -327,11 +342,9 @@ export default function ChatPage() {
       )
       .then(r => {
         const initialMessages = r.data.data || [];
-        console.log(initialMessages)
         const total = r.data.totalCount || 0;
         setMessages(initialMessages);
         setTotalMessages(total);
-        setUnreadMap(p => ({ ...p, [activeContact.user_id]: 0 }));
 
         if (initialMessages.length < MESSAGES_PER_PAGE || initialMessages.length >= total) {
           setHasMoreMessages(false);
