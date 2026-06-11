@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const http = require("http");                      
+const { setupSocket } = require("./middleware/socketSetup");     
+
 require("dotenv").config();
 const connectDB = require("./config/db"); 
 connectDB(); 
@@ -58,6 +61,7 @@ const incrementRoutes = require("./modules/increment/incrementRoutes");
 const warningRoutes = require("./modules/warning/Warningroutes");
 const resignationRoutes = require("./modules/resignation/Resignationroutes");
 const complaintRoutes = require("./modules/complaint/Complaintroutes");
+const chatRoutes = require("./modules/chat/chatRoutes"); 
 
 const safeUse = (path, route, name) => {
   if (!route || typeof route !== "function") {
@@ -110,6 +114,7 @@ safeUse("/api/increment", incrementRoutes, "incrementRoutes");
 safeUse("/api/warnings", warningRoutes, "warningRoutes");
 safeUse("/api/resignations", resignationRoutes, "resignationRoutes");
 safeUse("/api/complaints", complaintRoutes, "complaintRoutes");
+safeUse("/api/chat", chatRoutes, "chatRoutes");        
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
@@ -120,7 +125,9 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
+const server = http.createServer(app);   
+setupSocket(server);                    
 
-app.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

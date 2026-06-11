@@ -8,7 +8,7 @@ const complaintController = require("./Complaintcontroller");
 router.post("/", auth, complaintController.raiseComplaint);
 router.get("/my", auth, complaintController.getMyComplaints);
 
-router.get("/", auth, roleCheck(["company_admin", "super_admin"]), complaintController.getAllComplaints);
-router.patch("/:id/resolve", auth, roleCheck(["company_admin", "super_admin"]), complaintController.resolveComplaint);
+router.get("/", auth, roleCheck(["manager", "super_admin"]), complaintController.getAllComplaints);
+router.patch("/:id/resolve", auth, roleCheck(["manager", "super_admin"]), complaintController.resolveComplaint);
 
 module.exports = router;

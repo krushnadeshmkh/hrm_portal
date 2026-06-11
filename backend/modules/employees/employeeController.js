@@ -11,7 +11,7 @@ exports.getEmployees = async (req, res) => {
     const companyId = req.user.company_id;
     
     const employees = await Employee.find({ company_id: companyId })
-      .populate("user_id", "name email phone avatar_url")
+      .populate("user_id", "name email phone avatar_url role")
       .populate("department_id", "department_name")
       .populate("designation_id", "designation_name")
       .populate("manager_id", "name email");
@@ -28,7 +28,8 @@ exports.getEmployees = async (req, res) => {
       joining_date: emp.joining_date,
       position: emp.position || "employee",
       status: emp.status || "active",
-      manager: emp.manager_id ? { name: emp.manager_id.name, email: emp.manager_id.email } : null
+      manager: emp.manager_id ? { name: emp.manager_id.name, email: emp.manager_id.email } : null,
+      role:emp.user_id?.role || emp.role || ""
     }));
     
     res.json({ success: true, data: formattedEmployees });

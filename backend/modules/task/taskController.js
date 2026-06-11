@@ -5,17 +5,20 @@ exports.getMyTeam = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user_id: req.user.id });
 
+
     if (!employee) {
       return res.status(404).json({ success: false, msg: "Employee record not found." });
     }
 
     const team = await Employee.find({
-      manager_id: employee._id,
       company_id: employee.company_id,
+      manager_id:employee._id
     })
       .populate("designation_id", "designation_name")
       .populate("department_id", "department_name")
       .sort({ name: 1 });
+
+
 
     res.json({ success: true, data: team });
   } catch (err) {
@@ -33,7 +36,7 @@ exports.assignTask = async (req, res) => {
     }
 
     const manager = await Employee.findOne({ user_id: req.user.id });
-
+    console.log(manager,"manager")
     if (!manager) {
       return res.status(404).json({ success: false, msg: "Manager record not found." });
     }
@@ -42,6 +45,8 @@ exports.assignTask = async (req, res) => {
       _id: assigned_to,
       manager_id: manager._id,
     });
+
+    console.log(subordinate)
 
     if (!subordinate) {
       return res.status(403).json({ success: false, msg: "You can only assign tasks to your own team members." });

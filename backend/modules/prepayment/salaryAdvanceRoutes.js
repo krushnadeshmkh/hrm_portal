@@ -11,8 +11,8 @@ const {
   deleteAdvance
 } = require("../prepayment/salaryAdvanceController");
 
-const isAdmin = roleCheck(["company_admin", "super_admin"]);
-const isEmployee = roleCheck(["employee", "company_admin", "super_admin"]);
+const isAdmin = roleCheck(["manager", "super_admin"]);
+const isEmployee = roleCheck(["employee", "manager", "super_admin"]);
 
 router.get("/all", auth, isAdmin, getAllAdvances);
 router.get("/:status", auth, isAdmin, getAdvancesByStatus);

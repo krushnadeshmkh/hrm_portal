@@ -6,19 +6,19 @@ const roleCheck = require("../../middleware/roleCheck");
 const holidayController = require("./holidaysController");
 
 
-router.get( "/",auth,roleCheck(["company_admin", "super_admin", "employee"]),
+router.get( "/",auth,roleCheck(["manager", "super_admin", "employee"]),
   holidayController.getHolidays
 );
 
-router.post("/add", auth, roleCheck(["company_admin", "super_admin"]),
+router.post("/add", auth, roleCheck(["manager", "super_admin"]),
   holidayController.addHoliday
 );
 
-router.put("/:id",auth, roleCheck(["company_admin", "super_admin"]),
+router.put("/:id",auth, roleCheck(["manager", "super_admin"]),
   holidayController.updateHoliday
 );
 
-router.delete("/:id",auth,roleCheck(["company_admin", "super_admin"]),
+router.delete("/:id",auth,roleCheck(["manager", "super_admin"]),
   holidayController.deleteHoliday
 );
 

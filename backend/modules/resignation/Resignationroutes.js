@@ -9,7 +9,7 @@ router.post("/", auth, resignationController.submitResignation);
 router.get("/my", auth, resignationController.getMyResignation);
 router.patch("/:id/withdraw", auth, resignationController.withdrawResignation);
 
-router.get("/", auth, roleCheck(["company_admin", "super_admin"]), resignationController.getAllResignations);
-router.patch("/:id/review", auth, roleCheck(["company_admin", "super_admin"]), resignationController.reviewResignation);
+router.get("/", auth, roleCheck(["manager", "super_admin"]), resignationController.getAllResignations);
+router.patch("/:id/review", auth, roleCheck(["manager", "super_admin"]), resignationController.reviewResignation);
 
 module.exports = router;

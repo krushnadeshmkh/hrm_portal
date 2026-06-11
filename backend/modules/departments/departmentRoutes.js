@@ -50,7 +50,7 @@ router.get("/:id", verifyToken, async (req, res) => {
 router.post(
   "/",
   verifyToken,
-  checkRole(["company_admin"]),
+  checkRole(["manager"]),
   async (req, res) => {
     try {
       const { company_id } = req.user;
@@ -97,7 +97,7 @@ router.post(
 router.put(
   "/:id",
   verifyToken,
-  checkRole(["company_admin"]),
+  checkRole(["manager"]),
   async (req, res) => {
     try {
       const { company_id } = req.user;
@@ -154,7 +154,7 @@ router.put(
 router.delete(
   "/:id",
   verifyToken,
-  checkRole(["company_admin"]),
+  checkRole(["manager"]),
   async (req, res) => {
     try {
       const { company_id } = req.user;

@@ -6,15 +6,15 @@ const roleCheck = require('../../middleware/roleCheck');
 
 const employeeController = require('./employeeController');
 
-router.post('/add', auth, roleCheck(['company_admin', 'super_admin']), employeeController.addEmployee);
+router.post('/add', auth, roleCheck(['manager', 'super_admin']), employeeController.addEmployee);
 
-router.get('/', auth, roleCheck(['company_admin', 'super_admin','employee']), employeeController.getEmployees);
+router.get('/', auth, roleCheck(['manager', 'super_admin','employee']), employeeController.getEmployees);
 
 router.get('/profile', auth, employeeController.getEmployeeProfile);
 
-router.patch('/:id/position', auth, roleCheck(['company_admin', 'super_admin']), employeeController.updateEmployeePosition);
+router.patch('/:id/position', auth, roleCheck(['manager', 'super_admin']), employeeController.updateEmployeePosition);
 
-router.patch('/:id/salary', auth, roleCheck(['company_admin', 'super_admin']), employeeController.updateEmployeeSalary);
+router.patch('/:id/salary', auth, roleCheck(['manager', 'super_admin']), employeeController.updateEmployeeSalary);
 
 router.get('/me', auth, employeeController.getCurrentEmployee);
 

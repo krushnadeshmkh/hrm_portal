@@ -7,7 +7,7 @@ const roleCheck = require('../../middleware/roleCheck');
 const attendanceController = require('../attendance/attendanceController');
 
 const isAdmin = roleCheck([
-  'company_admin',
+  'manager',
   'super_admin',
   'software_owner'
 ]);

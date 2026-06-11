@@ -4,11 +4,15 @@ const LeaveBalance = require('../../models/LeaveBalance');
 
 exports.applyLeave = async (req, res) => {
   const { leave_type, start_date, end_date, reason } = req.body;
+  console.log(req.user)
 
   try {
     const employee = await Employee.findOne({
       email: req.user.email.toLowerCase(),
+      company_id:req.user.company_id
     });
+
+    console.log(employee)
 
     if (!employee) {
       return res.status(404).json({ error: "Employee record not found" });

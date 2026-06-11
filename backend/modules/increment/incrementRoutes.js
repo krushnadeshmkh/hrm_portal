@@ -10,8 +10,8 @@ const {
   deleteIncrement
 } = require("./incrementController");
 
-const isAdmin = roleCheck(["company_admin", "super_admin"]);
-const isEmployee = roleCheck(["employee", "company_admin", "super_admin"]);
+const isAdmin = roleCheck(["manager", "super_admin"]);
+const isEmployee = roleCheck(["employee", "manager", "super_admin"]);
 
 router.get("/all", auth, isAdmin, getAllIncrements);
 router.post("/create", auth, isAdmin, createIncrement);

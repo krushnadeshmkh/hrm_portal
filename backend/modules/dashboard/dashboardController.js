@@ -21,6 +21,7 @@ const todayMidnight = () => {
 };
 
 exports.getSummary = async (req, res) => {
+  console.log(req.user)
   try {
     const mode       = req.query.mode;      
     const empIdQuery = req.query.employee_id;

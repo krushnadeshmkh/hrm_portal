@@ -29,7 +29,7 @@ exports.register = async (req, res) => {
       role,
       company_id: company_id || null,
     });
-    if (role === "employee" || role === "company_admin") {
+    if (role === "employee" || role === "manager") {
       const defaultDept = "6a0451f0ba0cbcdb3965477b";
 
       const emp = await Employee.create({
@@ -90,7 +90,7 @@ exports.login = async (req, res) => {
     let employee_id = null;
     let position = null;
 
-    if (user.role === "employee" || user.role === "company_admin") {
+    if (user.role === "employee" || user.role === "manager") {
       const empRecord = await Employee.findOne({ user_id: user._id });
       if (empRecord) {
         employee_id = empRecord._id;
