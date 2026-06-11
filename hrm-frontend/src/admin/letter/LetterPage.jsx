@@ -12,8 +12,8 @@ import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
 import { useTheme } from "../../context/ThemeContext";
 
-const API = "https://hrm-backend-vvqg.onrender.com/api/letters";
-const EMP_API = "https://hrm-backend-vvqg.onrender.com/api/employees";
+const API = "http://localhost:5001/api/letters";
+const EMP_API = "http://localhost:5001/api/employees";
 const DEFAULT_LOGO = `${window.location.origin}/logo.png`;
 const DEFAULT_SIGNATURE = `${window.location.origin}/image.png`;
 

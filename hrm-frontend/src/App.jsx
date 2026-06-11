@@ -47,6 +47,7 @@ const AdminComplaints      = lazy(() => import("./admin/employeeOffboardings/Adm
 const EmployeeWarnings     = lazy(() => import("./employee/offboarding/Employeewarnings"));
 const EmployeeResignation  = lazy(() => import("./employee/offboarding/Employeeresignation"));
 const EmployeeComplaints   = lazy(() => import("./employee/offboarding/Employeecomplaints"));
+const ChatPage =lazy(()=>import("./common_moduls/ChatPage"))
 
 const PageLoader = () => (
   <div style={{
@@ -97,7 +98,7 @@ const HomeRedirect = () => {
 
   if (!token) return <Home />;
   if (role === "employee")      return <Navigate to="/employee-dashboard" replace />;
-  if (role === "company_admin") return <Navigate to="/dashboard" replace />;
+  if (role === "manager") return <Navigate to="/dashboard" replace />;
   return <Navigate to="/superadmin-dashboard" replace />;
 };
 
@@ -122,109 +123,116 @@ function App() {
           } />
 
           <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AdminDashboardPage />
             </ProtectedRoute>
           } />
 
           <Route path="/admin-attendance" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AdminAttendancePage />
             </ProtectedRoute>
           } />
 
           <Route path="/add-employee" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AddEmployee />
             </ProtectedRoute>
           } />
 
           <Route path="/update-employee" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <UpdateEmployee />
             </ProtectedRoute>
           } />
 
           <Route path="/departments" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <DepartmentsPage />
             </ProtectedRoute>
           } />
 
           <Route path="/holidays" element={
-            <ProtectedRoute allowedRoles={["employee", "company_admin"]}>
+            <ProtectedRoute allowedRoles={["employee", "manager"]}>
               <Holidays />
             </ProtectedRoute>
           } />
 
           <Route path="/leaves" element={
-            <ProtectedRoute allowedRoles={["employee", "company_admin"]}>
+            <ProtectedRoute allowedRoles={["employee", "manager"]}>
               <Leaves />
             </ProtectedRoute>
           } />
 
+
+            <Route path="/chat" element={
+              <ProtectedRoute allowedRoles={["manager", "employee"]}>
+                <ChatPage />
+              </ProtectedRoute>
+            } />
+
           <Route path="/payroll" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <Payroll />
             </ProtectedRoute>
           } />
 
           <Route path="/designations" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <Designations />
             </ProtectedRoute>
           } />
 
           <Route path="/support" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AdminSupportPage />
             </ProtectedRoute>
           } />
 
           <Route path="/appreciation" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AppreciationPage />
             </ProtectedRoute>
           } />
 
           <Route path="/letter" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <LetterPage />
             </ProtectedRoute>
           } />
 
           <Route path="/policy" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <PolicyPage />
             </ProtectedRoute>
           } />
 
           <Route path="/admin/advance-requests" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AdvanceRequests />
             </ProtectedRoute>
           } />
 
           <Route path="/admin/increment-promotion" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <IncrementPromotion />
             </ProtectedRoute>
           } />
 
           <Route path="/admin/warnings" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AdminWarnings />
             </ProtectedRoute>
           } />
 
           <Route path="/admin/resignations" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AdminResignations />
             </ProtectedRoute>
           } />
 
           <Route path="/admin/complaints" element={
-            <ProtectedRoute allowedRoles={["company_admin"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AdminComplaints />
             </ProtectedRoute>
           } />
@@ -260,7 +268,7 @@ function App() {
           } />
 
           <Route path="/assign-task" element={
-            <ProtectedRoute allowedRoles={["employee"]}>
+            <ProtectedRoute allowedRoles={["manager"]}>
               <AssignTask />
             </ProtectedRoute>
           } />

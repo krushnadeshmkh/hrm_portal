@@ -5,7 +5,7 @@ import { Plus, CalendarDays, Bell, Search, Clock, Pencil, Trash2, X, Check } fro
 import axios from "axios";
 import { useTheme } from "../../src/context/ThemeContext";
 
-const API = "https://hrm-backend-vvqg.onrender.com/api/holidays";
+const API = "http://localhost:5001/api/holidays";
 
 function Holidays() {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
@@ -29,7 +29,7 @@ function Holidays() {
   const role = localStorage.getItem("role");
   const name = localStorage.getItem("name") || "Admin";
   const token = localStorage.getItem("token");
-  const isAdmin = role === "company_admin" || role === "super_admin";
+  const isManager = role === "manager" || role === "super_admin";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const isMobile = window.innerWidth <= 768;
@@ -278,7 +278,7 @@ function Holidays() {
                 {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
               </p>
             </div>
-            {isAdmin && (
+            {isManager && (
               <button className="hol-add-btn" onClick={() => setShowModal(true)} style={{ display: "flex", alignItems: "center", gap: "7px", padding: "10px 18px", backgroundColor: "#4F46E5", color: "#fff", border: "none", borderRadius: "10px", fontSize: ".875rem", fontWeight: "500", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(79,70,229,.25)", whiteSpace: "nowrap", flexShrink: 0 }}>
                 <Plus size={16} /> Add Holiday
               </button>
@@ -360,7 +360,7 @@ function Holidays() {
                                 Upcoming
                               </span>
                           }
-                          {isAdmin && (
+                          {isManager && (
                             <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
                               <button className="icon-btn icon-btn-edit" onClick={() => openEditModal(holiday)} title="Edit">
                                 <Pencil size={14} color="#4F46E5" />

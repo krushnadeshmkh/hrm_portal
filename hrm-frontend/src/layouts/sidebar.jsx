@@ -6,21 +6,21 @@ import {
   UserCog, Globe, Menu, UserCircle, ChevronRight,
   ClipboardList, Mail, ArrowLeftRight, X,
   UserPen, HandCoins, TrendingUp, Receipt, FileText,
-  AlertTriangle, DoorOpen, MessageSquareWarning, Sun, Moon
+  AlertTriangle, DoorOpen, MessageSquareWarning, Sun, Moon,
+  MessageCircle
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
 const ALL_MENU_ITEMS = [
-  { name: "Admin Dashboard", path: "/dashboard", icon: <LayoutDashboard size={17} />, roles: ["company_admin"] },
+  { name: "Manager Dashboard", path: "/dashboard", icon: <LayoutDashboard size={17} />, roles: ["manager"] },
   { name: "Super Control Panel", path: "/superadmin-dashboard", icon: <LayoutDashboard size={17} />, roles: ["super_admin", "software_owner"] },
   { name: "My Dashboard", path: "/employee-dashboard", icon: <LayoutDashboard size={17} />, roles: ["employee"] },
-  { name: "Add Employee", path: "/add-employee", icon: <UserPlus size={17} />, roles: ["company_admin"] },
-  { name: "Update Employee", path: "/update-employee", icon: <UserPen size={17} />, roles: ["company_admin"] },
-  { name: "Employee Attendance", path: "/admin-attendance", icon: <Clock size={17} />, roles: ["company_admin"] },
+  { name: "Add Employee", path: "/add-employee", icon: <UserPlus size={17} />, roles: ["manager"] },
+  { name: "Employee Attendance", path: "/admin-attendance", icon: <Clock size={17} />, roles: ["manager"] },
   { name: "My Attendance", path: "/attendance", icon: <Clock size={17} />, roles: ["employee"] },
-  { name: "Holidays", path: "/holidays", icon: <Palmtree size={17} />, roles: ["company_admin", "employee"] },
-  { name: "Leaves", path: "/leaves", icon: <CalendarRange size={17} />, roles: ["company_admin", "employee"] },
-  { name: "Assign Task", path: "/assign-task", icon: <ClipboardList size={17} />, roles: ["employee"], positions: ["manager"] },
+  { name: "Holidays", path: "/holidays", icon: <Palmtree size={17} />, roles: ["manager", "employee"] },
+  { name: "Leaves", path: "/leaves", icon: <CalendarRange size={17} />, roles: ["manager", "employee"] },
+  { name: "Assign Task", path: "/assign-task", icon: <ClipboardList size={17} />, roles: ["manager"] },
   { name: "My Tasks", path: "/my-tasks", icon: <ClipboardList size={17} />, roles: ["employee"], positions: ["employee"] },
   { name: "Salary Advance", path: "/employee/salary-advance", icon: <HandCoins size={17} />, roles: ["employee"] },
   { name: "Career History", path: "/employee/career-history", icon: <TrendingUp size={17} />, roles: ["employee"] },
@@ -31,27 +31,28 @@ const ALL_MENU_ITEMS = [
   { name: "My Warnings", path: "/employee/warnings", icon: <AlertTriangle size={17} />, roles: ["employee"] },
   { name: "Resignation", path: "/employee/resignation", icon: <DoorOpen size={17} />, roles: ["employee"] },
   { name: "Complaints", path: "/employee/complaints", icon: <MessageSquareWarning size={17} />, roles: ["employee"] },
-  { name: "Advance Requests", path: "/admin/advance-requests", icon: <FileText size={17} />, roles: ["company_admin"] },
-  { name: "Increment & Promotion", path: "/admin/increment-promotion", icon: <TrendingUp size={17} />, roles: ["company_admin"] },
-  { name: "Warnings", path: "/admin/warnings", icon: <AlertTriangle size={17} />, roles: ["company_admin"] },
-  { name: "Resignations", path: "/admin/resignations", icon: <DoorOpen size={17} />, roles: ["company_admin"] },
-  { name: "Complaints", path: "/admin/complaints", icon: <MessageSquareWarning size={17} />, roles: ["company_admin"] },
-  { name: "Payroll", path: "/payroll", icon: <Wallet size={17} />, roles: ["company_admin"] },
-  { name: "Departments", path: "/departments", icon: <Building2 size={17} />, roles: ["company_admin"] },
-  { name: "Designations", path: "/designations", icon: <UserPlus size={17} />, roles: ["company_admin"] },
+  { name: "Advance Requests", path: "/admin/advance-requests", icon: <FileText size={17} />, roles: ["manager"] },
+  { name: "Increment & Promotion", path: "/admin/increment-promotion", icon: <TrendingUp size={17} />, roles: ["manager"] },
+  { name: "Warnings", path: "/admin/warnings", icon: <AlertTriangle size={17} />, roles: ["manager"] },
+  { name: "Resignations", path: "/admin/resignations", icon: <DoorOpen size={17} />, roles: ["manager"] },
+  { name: "Complaints", path: "/admin/complaints", icon: <MessageSquareWarning size={17} />, roles: ["manager"] },
+  { name: "Payroll", path: "/payroll", icon: <Wallet size={17} />, roles: ["manager"] },
+  { name: "Departments", path: "/departments", icon: <Building2 size={17} />, roles: ["manager"] },
+  { name: "Designations", path: "/designations", icon: <UserPlus size={17} />, roles: ["manager"] },
   { name: "Profile", path: "/profile", icon: <UserCircle size={17} />, roles: ["employee"] },
   { name: "Transactions", path: "/transactions", icon: <CreditCard size={17} />, roles: ["super_admin", "software_owner"] },
   { name: "Companies", path: "/superadmin/companiespage", icon: <Building2 size={17} />, roles: ["super_admin", "software_owner"] },
   { name: "Add Super Admin", path: "/add-superadmin", icon: <UserCog size={17} />, roles: ["super_admin", "software_owner"] },
   { name: "Pricing Plans", path: "/superadmin/pricing", icon: <CreditCard size={17} />, roles: ["super_admin", "software_owner"] },
   { name: "Website Settings", path: "/superadmin/website-settings", icon: <Globe size={17} />, roles: ["software_owner"] },
-  { name: "Appreciation", path: "/appreciation", icon: <UserPlus size={17} />, roles: ["company_admin"] },
-  { name: "Letters", path: "/letter", icon: <ClipboardList size={17} />, roles: ["company_admin"] },
-  { name: "Policies", path: "/policy", icon: <Mail size={17} />, roles: ["company_admin"] },
+  { name: "Appreciation", path: "/appreciation", icon: <UserPlus size={17} />, roles: ["manager"] },
+  { name: "Letters", path: "/letter", icon: <ClipboardList size={17} />, roles: ["manager"] },
+  { name: "Policies", path: "/policy", icon: <Mail size={17} />, roles: ["manager"] },
+   { name: "Chat", path: "/chat", icon: <MessageCircle size={17} />, roles: ["manager", "employee"] },
 ];
 
 const ROLE_LABELS = {
-  company_admin: "Company Admin",
+  manager: "Manager",
   super_admin: "Super Admin",
   software_owner: "Software Owner",
   employee: "Employee",
@@ -210,7 +211,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   );
 
   const trueRoleLabel = ROLE_LABELS[trueRole] || trueRole;
-  const isAdminViewingAsEmployee = trueRole === "company_admin" && viewMode === "employee";
+  const isAdminViewingAsEmployee = trueRole === "manager" && viewMode === "employee";
 
   const position = localStorage.getItem("position");
 
@@ -228,7 +229,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const sidebarExpanded = isMobile ? true : isOpen;
 
   const handleViewSwitch = useCallback(() => {
-    const next = viewMode === "company_admin" ? "employee" : "company_admin";
+    const next = viewMode === "manager" ? "employee" : "manager";
     localStorage.setItem("role", next);
     setViewMode(next);
     navigate(next === "employee" ? "/employee-dashboard" : "/dashboard");
@@ -347,7 +348,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           )}
         </div>
 
-        {trueRole === "company_admin" && (
+        {trueRole === "manager" && (
           <div style={{
             padding: sidebarExpanded ? "10px 12px" : "10px 6px",
             borderBottom: "1px solid var(--sb-border)",
@@ -373,7 +374,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   style={{ display: "flex", background: "var(--sb-toggle-bg)", borderRadius: "10px", padding: "3px", gap: "2px" }}
                 >
                   {[
-                    { mode: "company_admin", label: "Admin" },
+                    { mode: "manager", label: "Manager" },
                     { mode: "employee", label: "Employee" },
                   ].map(({ mode, label }) => {
                     const active = viewMode === mode;

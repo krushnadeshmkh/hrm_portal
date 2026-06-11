@@ -10,7 +10,7 @@ import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
 import { useTheme } from "../../context/ThemeContext";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 const API = `${BASE_URL}/api/policies`;
 
 const SHARED = `

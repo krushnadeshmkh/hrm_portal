@@ -73,7 +73,7 @@ const Designations = () => {
   const fetchDesignations = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("https://hrm-backend-vvqg.onrender.com/api/designations");
+      const res = await axios.get("http://localhost:5001/api/designations");
       const list = res.data.data || res.data.designations || res.data || [];
       setDesignations(Array.isArray(list) ? list : []);
     } catch (err) {
@@ -91,7 +91,7 @@ const Designations = () => {
     if (!designationName.trim() || !companyId.trim()) return;
     setIsSubmitting(true);
     try {
-      await axios.post("https://hrm-backend-vvqg.onrender.com/api/designations", {
+      await axios.post("http://localhost:5001/api/designations", {
         designation_name: designationName.trim(),
         company_id: companyId.trim(),
       });
@@ -110,7 +110,7 @@ const Designations = () => {
 
   const deleteDesignation = async (id) => {
     try {
-      await axios.delete(`https://hrm-backend-vvqg.onrender.com/api/designations/${id}`);
+      await axios.delete(`http://localhost:5001/api/designations/${id}`);
       setDeleteConfirm(null);
       showToast("Designation deleted");
       fetchDesignations();

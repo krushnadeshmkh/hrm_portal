@@ -5,7 +5,7 @@ import MobileTopBar from "../../employee/MobileTopBar";
 import { Bell, Search, X, Check } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
-const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 const statusConfig = {
   pending: { bg: "#FFFBEB", text: "#D97706", label: "Pending" },

@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
-const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -322,9 +322,9 @@ function Register() {
                         : "none",
                   }}
                 >
-                  <option value="company_admin">Company Administrator</option>
+                  <option value="manager">Company Manager</option>
                   <option value="employee">Employee</option>
-                  <option value="super_admin">Super Admin</option>
+                  <option value="company_admin">Company Admin</option>
                 </select>
               </div>
 

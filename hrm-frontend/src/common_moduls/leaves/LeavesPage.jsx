@@ -21,7 +21,7 @@ const Leaves = () => {
 
   const role = localStorage.getItem("role");
   const name = localStorage.getItem("name") || "Admin";
-  const isAdmin = role === "company_admin" || role === "super_admin";
+  const isManager = role === "manager" || role === "super_admin";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
@@ -72,7 +72,7 @@ const Leaves = () => {
     else setIsRefreshing(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("https://hrm-backend-vvqg.onrender.com/api/leaves", {
+      const res = await axios.get("http://localhost:5001/api/leaves", {
         headers: { "x-auth-token": token },
       });
       setLeaveRequests(res.data.data || []);
@@ -92,7 +92,7 @@ const Leaves = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `https://hrm-backend-vvqg.onrender.com/api/leaves/approve/${id}`,
+        `http://localhost:5001/api/leaves/approve/${id}`,
         { status },
         { headers: { "x-auth-token": token } }
       );
@@ -107,7 +107,7 @@ const Leaves = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "https://hrm-backend-vvqg.onrender.com/api/leaves/apply",
+        "http://localhost:5001/api/leaves/apply",
         { leave_type: leaveType, start_date: startDate, end_date: endDate, reason },
         { headers: { "x-auth-token": token } }
       );
@@ -116,8 +116,8 @@ const Leaves = () => {
       setStartDate("");
       setEndDate("");
       await fetchLeaves(true);
-    } catch {
-      alert("Error applying leave");
+    } catch(err) {
+      alert(err);
     }
   };
 
@@ -232,7 +232,7 @@ const Leaves = () => {
                 {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
               </p>
             </div>
-            {!isAdmin && (
+            {!isManager && (
               <button
                 className="apply-btn"
                 onClick={() => setShowModal(true)}
@@ -267,7 +267,7 @@ const Leaves = () => {
             <div className="leaves-table-header" style={{ padding: "16px 20px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
               <div>
                 <h2 style={{ fontSize: "0.95rem", fontWeight: "600", color: t.textPrimary, margin: "0 0 2px" }}>
-                  {isAdmin ? "All Applications" : "My Leave History"}
+                  {isManager ? "All Applications" : "My Leave History"}
                 </h2>
                 <p style={{ fontSize: "0.75rem", color: t.textMuted, margin: 0 }}>
                   {filtered.length} {filtered.length === 1 ? "record" : "records"} found
@@ -289,7 +289,7 @@ const Leaves = () => {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ backgroundColor: t.tableHead }}>
-                    {["#", ...(isAdmin ? ["Employee"] : []), "Leave Type", "Period", "Status", ...(isAdmin ? ["Actions"] : [])].map((h, i) => (
+                    {["#", ...(isManager ? ["Employee"] : []), "Leave Type", "Period", "Status", ...(isManager ? ["Actions"] : [])].map((h, i) => (
                       <th key={i} style={{ padding: "10px 18px", textAlign: "left", fontSize: "0.68rem", fontWeight: "600", color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: `1px solid ${t.border}`, whiteSpace: "nowrap" }}>
                         {h}
                       </th>
@@ -300,7 +300,7 @@ const Leaves = () => {
                   {loading ? (
                     Array.from({ length: 4 }).map((_, i) => (
                       <tr key={i}>
-                        {[40, ...(isAdmin ? [140] : []), 100, 160, 80, ...(isAdmin ? [80] : [])].map((w, j) => (
+                        {[40, ...(isManager ? [140] : []), 100, 160, 80, ...(isManager ? [80] : [])].map((w, j) => (
                           <td key={j} style={{ padding: "13px 18px" }}>
                             <div style={{ height: "13px", width: `${w}px`, background: t.skeletonBg, borderRadius: "4px" }} />
                           </td>
@@ -309,7 +309,7 @@ const Leaves = () => {
                     ))
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={isAdmin ? 6 : 4} style={{ padding: "44px", textAlign: "center" }}>
+                      <td colSpan={isManager ? 6 : 4} style={{ padding: "44px", textAlign: "center" }}>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", color: t.textMuted }}>
                           <AlertCircle size={26} />
                           <span style={{ fontSize: "0.875rem" }}>No leave requests found</span>
@@ -324,7 +324,7 @@ const Leaves = () => {
                           <td style={{ padding: "12px 18px", fontSize: "0.8rem", color: t.textMuted, fontWeight: "500" }}>
                             {String(i + 1).padStart(2, "0")}
                           </td>
-                          {isAdmin && (
+                          {isManager && (
                             <td style={{ padding: "12px 18px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                                 <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: `hsl(${((req.employee_name || "?").charCodeAt(0) || 65) * 5 % 360},55%,${isDark ? "45%" : "55%"})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.72rem", fontWeight: "600", flexShrink: 0 }}>
@@ -349,7 +349,7 @@ const Leaves = () => {
                               {req.status || "Pending"}
                             </span>
                           </td>
-                          {isAdmin && (
+                          {isManager && (
                             <td style={{ padding: "12px 18px" }}>
                               {req.status === "Pending" ? (
                                 <div style={{ display: "inline-flex", gap: "6px" }}>

@@ -7,7 +7,7 @@ import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
 import { useTheme } from "../../context/ThemeContext";
 
-const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 function UpdateEmployee() {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);

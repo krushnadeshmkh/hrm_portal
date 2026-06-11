@@ -68,7 +68,7 @@ const AdminAttendancePage = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        "https://hrm-backend-vvqg.onrender.com/api/attendance/all",
+        "http://localhost:5001/api/attendance/all",
         { headers: { "x-auth-token": token } }
       );
       const raw = res.data;

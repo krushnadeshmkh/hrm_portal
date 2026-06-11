@@ -71,7 +71,7 @@ function AdvanceRequests() {
   }, []);
 
   const sidebarWidth = isMobile ? 0 : isOpen ? 255 : 68;
-  const API_URL = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
   const fetchRequests = async () => {
     try {

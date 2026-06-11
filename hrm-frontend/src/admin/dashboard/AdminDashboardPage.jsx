@@ -22,7 +22,7 @@ const Dashboard = () => {
   const [search, setSearch] = useState("");
   const { isDark } = useTheme();
 
-  const name = localStorage.getItem("name") || "Admin";
+  const name = localStorage.getItem("name") || "Manager";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
@@ -60,9 +60,10 @@ const Dashboard = () => {
         const token = localStorage.getItem("token");
         const headers = { "x-auth-token": token };
         const [sumRes, empRes] = await Promise.all([
-          axios.get("https://hrm-backend-vvqg.onrender.com/api/dashboard/summary", { headers }),
-          axios.get("https://hrm-backend-vvqg.onrender.com/api/employees", { headers }),
+          axios.get("http://localhost:5001/api/dashboard/summary", { headers }),
+          axios.get("http://localhost:5001/api/employees", { headers }),
         ]);
+
         setStatsData(sumRes.data.data || {});
         setEmployees(empRes.data.data || []);
       } catch (err) {
@@ -174,7 +175,7 @@ const Dashboard = () => {
               {greeting}, <strong style={{ color: "#4F46E5" }}>{name}</strong> 👋
             </p>
             <h1 className="dash-h1" style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.85rem", fontWeight: "700", color: t.textPrimary, margin: 0, lineHeight: 1.2 }}>
-              Admin Dashboard
+              Manager Dashboard
             </h1>
             <p style={{ color: t.textMuted, fontSize: "0.85rem", margin: "5px 0 0" }}>
               {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}

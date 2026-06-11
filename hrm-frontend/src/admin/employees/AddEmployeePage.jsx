@@ -8,7 +8,7 @@ import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
 import { useTheme } from "../../context/ThemeContext";
 
-const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 function AddEmployee() {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
@@ -31,7 +31,7 @@ function AddEmployee() {
   const [toast, setToast] = useState(null);
   const { isDark } = useTheme();
 
-  const name = localStorage.getItem("name") || "Admin";
+  const name = localStorage.getItem("name") || "Manager";
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
@@ -181,10 +181,9 @@ function AddEmployee() {
     { label: "Salary (₹)",       id: "field-salary",       field: "salary",       type: "number",   icon: <DollarSign size={16} aria-hidden="true" style={iconBase} />, placeholder: "e.g., 50000", required: false },
   ];
 
+
   const managers = employees.filter((emp) =>
-    emp.position === "manager" ||
-    emp.designation?.toLowerCase().includes("manager") ||
-    emp.designation_id?.designation_name?.toLowerCase().includes("manager")
+    emp.role === "manager"
   );
 
   const selectedManager = managers.find((emp) => emp._id === formData.manager_id);

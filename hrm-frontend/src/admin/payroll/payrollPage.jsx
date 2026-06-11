@@ -92,7 +92,7 @@ function Payroll() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("https://hrm-backend-vvqg.onrender.com/api/payroll", {
+      const res = await axios.get("http://localhost:5001/api/payroll", {
         headers: { "x-auth-token": token },
       });
       setPayrollData(res.data.data || []);
@@ -106,7 +106,7 @@ function Payroll() {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("https://hrm-backend-vvqg.onrender.com/api/employees", {
+      const res = await axios.get("http://localhost:5001/api/employees", {
         headers: { "x-auth-token": token },
       });
       setEmployees(res.data.data || []);
@@ -142,7 +142,7 @@ function Payroll() {
     if (!payrollId) { alert("No payment record found to download."); return; }
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`https://hrm-backend-vvqg.onrender.com/api/payroll/download/${payrollId}`, {
+      const res = await axios.get(`http://localhost:5001/api/payroll/download/${payrollId}`, {
         headers: { "x-auth-token": token },
       });
       const data = res.data.data;
@@ -330,7 +330,7 @@ function Payroll() {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "https://hrm-backend-vvqg.onrender.com/api/payroll/generate",
+        "http://localhost:5001/api/payroll/generate",
         {
           employee_id: selectedEmp,
           salary: parseFloat(salary),

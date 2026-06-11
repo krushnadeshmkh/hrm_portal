@@ -5,7 +5,7 @@ import MobileTopBar from "../../employee/MobileTopBar";
 import { Bell, Search, X, Check, AlertCircle } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
-const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 const priorityColors = {
   low: { bg: "#ECFDF5", text: "#059669" },
