@@ -1,12 +1,13 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const http = require("http");                      
-const { setupSocket } = require("./middleware/socketSetup");     
+const http = require("http");
+const { setupSocket } = require("./middleware/socketSetup");
 
 require("dotenv").config();
-const connectDB = require("./config/db"); 
-connectDB(); 
+const connectDB = require("./config/db");
+connectDB();
 
 const app = express();
 app.use(
@@ -61,7 +62,10 @@ const incrementRoutes = require("./modules/increment/incrementRoutes");
 const warningRoutes = require("./modules/warning/Warningroutes");
 const resignationRoutes = require("./modules/resignation/Resignationroutes");
 const complaintRoutes = require("./modules/complaint/Complaintroutes");
-const chatRoutes = require("./modules/chat/chatRoutes"); 
+const chatRoutes = require("./modules/chat/chatRoutes");
+const groupRoutes = require("./modules/group/Groupchatroutes");
+const meetingRoutes = require("./modules/calendar/meetingRoutes");
+const calendarRoutes = require("./modules/calendar/calendarRoutes");
 
 const safeUse = (path, route, name) => {
   if (!route || typeof route !== "function") {
@@ -114,7 +118,12 @@ safeUse("/api/increment", incrementRoutes, "incrementRoutes");
 safeUse("/api/warnings", warningRoutes, "warningRoutes");
 safeUse("/api/resignations", resignationRoutes, "resignationRoutes");
 safeUse("/api/complaints", complaintRoutes, "complaintRoutes");
-safeUse("/api/chat", chatRoutes, "chatRoutes");        
+
+safeUse("/api/chat", chatRoutes, "chatRoutes");
+safeUse("/api/groups", groupRoutes, "groupRoutes");
+
+safeUse("/api/calendar", calendarRoutes, "calendarRoutes");
+safeUse("/api/meetings", meetingRoutes, "meetingRoutes");
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
@@ -125,8 +134,8 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-const server = http.createServer(app);   
-setupSocket(server);                    
+const server = http.createServer(app);
+const io = setupSocket(server);
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);

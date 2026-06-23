@@ -84,6 +84,8 @@ exports.getContacts = async (req, res) => {
             { sender_id: userId, receiver_id: managerEmployee.user_id._id },
             { sender_id: managerEmployee.user_id._id, receiver_id: userId },
           ],
+          deleted_for_everyone: false,
+          deleted_for: { $nin: [userId] },
         }).sort({ createdAt: -1 });
 
         contacts = [{
@@ -93,7 +95,7 @@ exports.getContacts = async (req, res) => {
           avatar: managerEmployee.user_id.avatar_url || null,
           role: "manager",
           last_message_time: lastMsg?.createdAt || null,
-          last_message: lastMsg?.content || null,
+          last_message: lastMsg ? (lastMsg.file_type ? "📎 File" : lastMsg.content) : null,
         }];
       }
     } else if (role === "manager" || role === "company_admin") {
@@ -111,6 +113,8 @@ exports.getContacts = async (req, res) => {
                 { sender_id: userId, receiver_id: e.user_id._id },
                 { sender_id: e.user_id._id, receiver_id: userId },
               ],
+              deleted_for_everyone: false,
+              deleted_for: { $nin: [userId] },
             }).sort({ createdAt: -1 });
 
             return {
@@ -120,7 +124,7 @@ exports.getContacts = async (req, res) => {
               avatar: e.user_id.avatar_url || null,
               role: "employee",
               last_message_time: lastMsg?.createdAt || null,
-              last_message: lastMsg?.content || null,
+              last_message: lastMsg ? (lastMsg.file_type ? "📎 File" : lastMsg.content) : null,
             };
           })
       );
@@ -137,7 +141,6 @@ exports.getMessages = async (req, res) => {
   try {
     const myUserId = req.user.id;
     const otherUserId = req.params.userId;
-    const companyId = req.user.company_id;
     const offset = parseInt(req.query.offset) || 0;
     const limit = parseInt(req.query.limit) || 30;
 
@@ -149,10 +152,6 @@ exports.getMessages = async (req, res) => {
         { sender_id: otherUserId, receiver_id: myUserId },
       ],
     };
-
-    if (companyId) {
-      query.company_id = companyId;
-    }
 
     const totalCount = await Message.countDocuments(query);
 
