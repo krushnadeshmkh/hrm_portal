@@ -1,5 +1,5 @@
 const Group = require("../../models/Group");
-const GroupMessage = require("../../models/GroupMessage");
+const GroupMessage = require("../../models/Groupmessage");
 const Employee = require("../../models/Employee");
 const User = require("../../models/User");
 const multer = require("multer");
