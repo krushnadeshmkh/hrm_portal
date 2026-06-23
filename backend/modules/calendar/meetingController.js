@@ -2,7 +2,7 @@ const Meeting = require("../../models/Meeting");
 const Message = require("../../models/Message");
 const User = require("../../models/User");
 const Group = require("../../models/Group");
-const GroupMessage = require("../../models/GroupMessage");
+const GroupMessage = require("../../models/Groupmessage");
 const mongoose = require("mongoose");
 const { getIO, getUserSocketId } = require("../../middleware/socketSetup");
 
