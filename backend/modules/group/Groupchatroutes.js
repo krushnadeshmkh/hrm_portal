@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/authMiddleware");
-const gc = require("./groupChatController");
+const gc = require("./Groupchatcontroller");
 
 router.post("/", auth, gc.uploadMiddleware, gc.createGroup);
 router.get("/", auth, gc.getMyGroups);
