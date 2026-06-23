@@ -1,0 +1,33 @@
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-toast {
+  animation: slideIn 0.3s ease;
+}
+
+.notification-container {
+  width: 100%;
+}
+
+
+@media (prefers-color-scheme: dark) {
+  .notification-body {
+    background: #1a1a2e;
+    color: #ffffff;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .notification-body {
+    background: #ffffff;
+    color: #111827;
+  }
+}

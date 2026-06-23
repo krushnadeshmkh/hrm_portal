@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Shnoor HRM - HRMS & Payroll Software | Free Trial</title>
+    <title>Shnoor HRM - HRMS & Payroll Software</title>
     <meta name="description" content="All-in-one HRMS software for payroll, attendance, leave management & employee records. Automate HR operations for small to large enterprises. Start free."/>
     <meta name="keywords" content="HR management system, payroll software, attendance tracking, leave management, HRMS, HR solution, payroll system, attendance management" />
     <meta name="author" content="Shnoor International LLC" />
@@ -35,6 +35,7 @@
     <meta name="apple-mobile-web-app-title" content="Shnoor HRM" />
     <meta name="theme-color" content="#4F46E5" />
 
+    <link rel="manifest" href="/manifest.json" />
     <link rel="canonical" href="https://hrm-portal-frontend.onrender.com" />
     <link rel="preconnect" href="https://hrm-backend-vvqg.onrender.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -42,19 +43,35 @@
     <link rel="dns-prefetch" href="https://hrm-backend-vvqg.onrender.com" />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap"
       media="print"
       onload="this.media='all'"
     />
     <noscript>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap"
       />
     </noscript>
+    
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.svg" />
+    
+    <script>
+      window.__initialTitle = document.title;
+      
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/notification-sw.js').then(function(registration) {
+            console.log('ServiceWorker registration successful');
+          }).catch(function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+    
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -89,6 +106,7 @@
       ]
     }
     </script>
+    
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -104,20 +122,50 @@
       }
     }
     </script>
+    
     <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; background: #F9FAFB; color: #111827; }
-      #root { min-height: 100vh; }
-      .initial-loader {
-        display: flex; align-items: center; justify-content: center;
-        min-height: 100vh; background: #F9FAFB;
+      *, *::before, *::after { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0; 
       }
+      
+      body { 
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif; 
+        background: #F9FAFB; 
+        color: #111827; 
+      }
+      
+      #root { 
+        min-height: 100vh; 
+      }
+      
+      .initial-loader {
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        min-height: 100vh; 
+        background: #F9FAFB;
+      }
+      
       .initial-loader__spinner {
-        width: 40px; height: 40px; border-radius: 50%;
-        border: 3px solid #EEF2FF; border-top-color: #4F46E5;
+        width: 40px; 
+        height: 40px; 
+        border-radius: 50%;
+        border: 3px solid #EEF2FF; 
+        border-top-color: #4F46E5;
         animation: spin 0.7s linear infinite;
       }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      
+      @keyframes spin { 
+        to { transform: rotate(360deg); } 
+      }
+      
+      @keyframes titleBlink {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+      }
     </style>
   </head>
   <body>

@@ -7,6 +7,8 @@ import axios from "axios";
 import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
 import { useTheme } from "../../context/ThemeContext";
+import CalendarWidget from "../calendar/CalendarWidget";
+import UpcomingMeetings from "../meetings/UpcomingMeetings";
 
 const Dashboard = () => {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
@@ -219,6 +221,11 @@ const Dashboard = () => {
                 />
               </div>
             </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
+  <CalendarWidget />
+  <UpcomingMeetings />
+</div>
 
             <div className="dash-table-wrap">
               <table style={{ width: "100%", borderCollapse: "collapse" }}>

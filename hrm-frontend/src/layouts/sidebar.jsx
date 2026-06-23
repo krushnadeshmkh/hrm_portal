@@ -1,3 +1,4 @@
+// Sidebar.jsx - Updated with Calendar and Meetings
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -7,7 +8,7 @@ import {
   ClipboardList, Mail, ArrowLeftRight, X,
   UserPen, HandCoins, TrendingUp, Receipt, FileText,
   AlertTriangle, DoorOpen, MessageSquareWarning, Sun, Moon,
-  MessageCircle, Bell
+  MessageCircle, Bell, Calendar, Video
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -16,6 +17,8 @@ import {
   subscribeToGlobalNotifications,
   clearAllNotifications,
   resetUnreadForSender,
+  resetUnreadForGroup,
+  markGroupMessagesAsRead,
 } from "../hook/useSocket";
 
 const ALL_MENU_ITEMS = [
@@ -27,6 +30,10 @@ const ALL_MENU_ITEMS = [
   { name: "My Attendance", path: "/attendance", icon: <Clock size={17} />, roles: ["employee"] },
   { name: "Holidays", path: "/holidays", icon: <Palmtree size={17} />, roles: ["manager", "employee"] },
   { name: "Leaves", path: "/leaves", icon: <CalendarRange size={17} />, roles: ["manager", "employee"] },
+  { name: "Calendar", path: "/calendar", icon: <Calendar size={17} />, roles: ["manager"] },
+  { name: "Meetings", path: "/meetings", icon: <Video size={17} />, roles: ["manager"] },
+  { name: "My Calendar", path: "/employee/calendar", icon: <Calendar size={17} />, roles: ["employee"] },
+  { name: "My Meetings", path: "/employee/meetings", icon: <Video size={17} />, roles: ["employee"] },
   { name: "Assign Task", path: "/assign-task", icon: <ClipboardList size={17} />, roles: ["manager"] },
   { name: "My Tasks", path: "/my-tasks", icon: <ClipboardList size={17} />, roles: ["employee"], positions: ["employee"] },
   { name: "Salary Advance", path: "/employee/salary-advance", icon: <HandCoins size={17} />, roles: ["employee"] },
@@ -103,10 +110,9 @@ const SB_STYLES = (isDark) => `
   .sb-notif-scroll::-webkit-scrollbar { width: 3px; }
   .sb-notif-scroll::-webkit-scrollbar-track { background: transparent; }
   .sb-notif-scroll::-webkit-scrollbar-thumb { background: ${isDark ? "#2D3748" : "#E5E7EB"}; border-radius: 4px; }
-  @keyframes badgePulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
   @keyframes badgePop { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
   @keyframes notifSlideIn { from{opacity:0;transform:translateY(-8px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
-  .preview-badge { animation: badgePulse 2.5s ease-in-out infinite; }
+  .preview-badge { opacity: 0.9; }
   .view-tab { transition: all 0.2s ease; }
   .view-tab:hover { opacity: 0.85; }
   .sb-chat-badge { animation: badgePop 0.2s ease; }
@@ -228,8 +234,8 @@ const NotificationPanel = ({ notifications, onNotifClick, onClearAll, panelRef, 
         position: "fixed",
         top: position.top,
         left: position.left,
-        width: isMobile ? `calc(100vw - 24px)` : "316px",
-        maxHeight: "420px",
+        width: isMobile ? `calc(100vw - 24px)` : "360px",
+        maxHeight: "480px",
         background: isDark ? "#161B27" : "#fff",
         border: `1px solid ${isDark ? "#1E2535" : "#E5E7EB"}`,
         borderRadius: "14px",
@@ -290,10 +296,7 @@ const NotificationPanel = ({ notifications, onNotifClick, onClearAll, panelRef, 
         )}
       </div>
 
-      <div
-        className="sb-notif-scroll"
-        style={{ overflowY: "auto", flex: 1 }}
-      >
+      <div className="sb-notif-scroll" style={{ overflowY: "auto", flex: 1 }}>
         {notifications.length === 0 ? (
           <div style={{
             padding: "40px 16px",
@@ -338,7 +341,7 @@ const NotificationPanel = ({ notifications, onNotifClick, onClearAll, panelRef, 
             >
               <UserAvatar
                 size={34}
-                initials={notif.sender_name.slice(0, 2).toUpperCase()}
+                initials={notif.is_group ? "G" : notif.sender_name.slice(0, 2).toUpperCase()}
                 isDark={isDark}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -347,18 +350,26 @@ const NotificationPanel = ({ notifications, onNotifClick, onClearAll, panelRef, 
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: "6px",
-                  marginBottom: "2px",
+                  marginBottom: "4px",
                 }}>
-                  <span style={{
-                    fontSize: "0.82rem",
-                    fontWeight: "600",
-                    color: isDark ? "#F3F4F6" : "#111827",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}>
-                    {notif.sender_name}
-                  </span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
+                    {notif.is_group && notif.group_name && (
+                      <span style={{
+                        fontSize: "0.7rem",
+                        color: isDark ? "#818CF8" : "#4F46E5",
+                        fontWeight: "500",
+                      }}>
+                        {notif.group_name}
+                      </span>
+                    )}
+                    <span style={{
+                      fontSize: "0.82rem",
+                      fontWeight: "600",
+                      color: isDark ? "#F3F4F6" : "#111827",
+                    }}>
+                      {notif.sender_name}
+                    </span>
+                  </div>
                   <span style={{
                     fontSize: "0.68rem",
                     color: isDark ? "#6B7280" : "#9CA3AF",
@@ -370,9 +381,8 @@ const NotificationPanel = ({ notifications, onNotifClick, onClearAll, panelRef, 
                 <div style={{
                   fontSize: "0.78rem",
                   color: isDark ? "#9CA3AF" : "#6B7280",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
+                  lineHeight: "1.4",
+                  wordBreak: "break-word",
                 }}>
                   {notif.content}
                 </div>
@@ -412,6 +422,54 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [notifPanelPos, setNotifPanelPos] = useState({ top: 0, left: 0 });
   const notifPanelRef = useRef(null);
   const bellBtnRef = useRef(null);
+  const [audioInitialized, setAudioInitialized] = useState(false);
+  const audioContextRef = useRef(null);
+
+  const blinkIntervalRef = useRef(null);
+  const latestSenderRef = useRef(null);
+
+  const stopBlinking = useCallback((unreadCount) => {
+    if (blinkIntervalRef.current) {
+      clearInterval(blinkIntervalRef.current);
+      blinkIntervalRef.current = null;
+    }
+    document.title = unreadCount > 0
+      ? `(${unreadCount > 99 ? "99+" : unreadCount}) HRM Portal`
+      : "HRM Portal";
+  }, []);
+
+  const startBlinking = useCallback((unreadCount, senderName) => {
+    if (blinkIntervalRef.current) clearInterval(blinkIntervalRef.current);
+
+    const alertText = senderName ? `💬 ${senderName}` : `💬 New Message`;
+    const normalText = `(${unreadCount > 99 ? "99+" : unreadCount}) HRM Portal`;
+    let showAlert = true;
+
+    document.title = alertText;
+
+    blinkIntervalRef.current = setInterval(() => {
+      document.title = showAlert ? normalText : alertText;
+      showAlert = !showAlert;
+    }, 2000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (blinkIntervalRef.current) clearInterval(blinkIntervalRef.current);
+      document.title = "Shnoor HRM - HRMS & Payroll Software";
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const unreadCount = Object.values({}).reduce((a, b) => a + b, 0);
+        stopBlinking(totalUnread);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [totalUnread, stopBlinking]);
 
   useEffect(() => {
     const syncAvatar = () => {
@@ -430,11 +488,74 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   }, []);
 
   useEffect(() => {
+    const initAudio = () => {
+      if (!audioInitialized) {
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioContextRef.current = new AudioContextClass();
+          setAudioInitialized(true);
+        } catch (e) {}
+        document.removeEventListener("click", initAudio);
+        document.removeEventListener("keydown", initAudio);
+      }
+    };
+
+    document.addEventListener("click", initAudio);
+    document.addEventListener("keydown", initAudio);
+
+    return () => {
+      document.removeEventListener("click", initAudio);
+      document.removeEventListener("keydown", initAudio);
+    };
+  }, [audioInitialized]);
+
+  const playNotificationSound = useCallback(() => {
+    if (!audioInitialized || !audioContextRef.current) return;
+
+    try {
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") ctx.resume();
+
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.frequency.value = 880;
+      gainNode.gain.value = 0.25;
+
+      oscillator.start();
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.2);
+      oscillator.stop(ctx.currentTime + 0.2);
+    } catch {}
+  }, [audioInitialized]);
+
+  useEffect(() => {
+    let previousCount = notifications.filter(n => !n.read).length;
+
     const unsub = subscribeToGlobalNotifications((list) => {
+      const newUnreadCount = list.filter(n => !n.read).length;
+
+      if (newUnreadCount > previousCount) {
+        playNotificationSound();
+        const latestUnread = list.find(n => !n.read);
+        latestSenderRef.current = latestUnread?.sender_name || null;
+
+        const totalCount = newUnreadCount;
+        startBlinking(totalCount, latestSenderRef.current);
+      }
+
+      if (newUnreadCount === 0) {
+        stopBlinking(0);
+      }
+
+      previousCount = newUnreadCount;
       setNotifications(list);
     });
+
     return unsub;
-  }, []);
+  }, [playNotificationSound, startBlinking, stopBlinking]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -494,9 +615,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   }, [viewMode, navigate, isMobile, setIsOpen]);
 
   const handleLogout = useCallback(() => {
+    stopBlinking(0);
     localStorage.clear();
     window.location.href = "/";
-  }, []);
+  }, [stopBlinking]);
 
   const handleToggle = useCallback(() => {
     setIsOpen(prev => !prev);
@@ -509,9 +631,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const handleBellClick = useCallback(() => {
     if (!showNotifPanel && bellBtnRef.current) {
       const rect = bellBtnRef.current.getBoundingClientRect();
-      const panelWidth = isMobile ? window.innerWidth - 24 : 316;
+      const panelWidth = isMobile ? window.innerWidth - 24 : 360;
       const spaceRight = window.innerWidth - rect.left;
-      const spaceLeft = rect.right;
 
       let left;
       if (isMobile) {
@@ -522,26 +643,30 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         left = Math.max(8, rect.left - panelWidth - 8);
       }
 
-      const top = Math.min(
-        rect.bottom + 6,
-        window.innerHeight - 430
-      );
-
+      const top = Math.min(rect.bottom + 6, window.innerHeight - 430);
       setNotifPanelPos({ top, left });
     }
     setShowNotifPanel(prev => !prev);
   }, [showNotifPanel, isMobile]);
 
   const handleNotifClick = useCallback((notif) => {
-    resetUnreadForSender(notif.sender_id);
-    setShowNotifPanel(false);
-    navigate("/chat");
+    if (notif.is_group) {
+      resetUnreadForGroup(notif.group_id);
+      setShowNotifPanel(false);
+      navigate("/chat", { state: { openGroupId: notif.group_id, groupName: notif.group_name } });
+    } else {
+      resetUnreadForSender(notif.sender_id);
+      setShowNotifPanel(false);
+      navigate("/chat", { state: { openUserId: notif.sender_id, userName: notif.sender_name } });
+    }
+    stopBlinking(0);
     if (isMobile) setIsOpen(false);
-  }, [navigate, isMobile, setIsOpen]);
+  }, [navigate, isMobile, setIsOpen, stopBlinking]);
 
   const handleClearAll = useCallback(() => {
     clearAllNotifications();
-  }, []);
+    stopBlinking(0);
+  }, [stopBlinking]);
 
   return (
     <>
@@ -553,11 +678,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
       {showNotifPanel && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 99998,
-          }}
+          style={{ position: "fixed", inset: 0, zIndex: 99998 }}
           onClick={() => setShowNotifPanel(false)}
         />
       )}
@@ -728,9 +849,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     Viewing as Employee
                   </div>
                 )}
-                <div
-                  style={{ display: "flex", background: "var(--sb-toggle-bg)", borderRadius: "10px", padding: "3px", gap: "2px" }}
-                >
+                <div style={{ display: "flex", background: "var(--sb-toggle-bg)", borderRadius: "10px", padding: "3px", gap: "2px" }}>
                   {[
                     { mode: "manager", label: "Manager" },
                     { mode: "employee", label: "Employee" },
