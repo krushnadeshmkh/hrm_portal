@@ -1,6 +1,6 @@
 const { Server } = require("socket.io");
 const Message = require("../models/Message");
-const GroupMessage = require("../models/GroupMessage");
+const GroupMessage = require("../models/Groupmessage");
 const Group = require("../models/Group");
 const Meeting = require("../models/Meeting");
 const jwt = require("jsonwebtoken");
