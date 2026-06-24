@@ -1,33 +1,46 @@
 User-agent: *
-
 Allow: /
 Allow: /features
 Allow: /pricing
 Allow: /contact
+Allow: /login
+Allow: /register
 
-Disallow: /login
-Disallow: /register
+# Protected routes - Employee
 Disallow: /employee-dashboard
-Disallow: /attendance
 Disallow: /profile
-Disallow: /leaves
-Disallow: /holidays
-Disallow: /appreciations
-Disallow: /employeeLetters
+Disallow: /attendance
 Disallow: /employeePolicies
+Disallow: /employeeLetters
+Disallow: /appreciations
+Disallow: /my-tasks
+Disallow: /employee/
+
+# Protected routes - Manager/Admin
 Disallow: /dashboard
 Disallow: /admin-attendance
 Disallow: /add-employee
+Disallow: /update-employee
 Disallow: /departments
+Disallow: /holidays
+Disallow: /leaves
 Disallow: /payroll
 Disallow: /designations
 Disallow: /support
 Disallow: /appreciation
 Disallow: /letter
 Disallow: /policy
+Disallow: /assign-task
+Disallow: /calendar
+Disallow: /meetings
+Disallow: /meeting-room/
+Disallow: /admin/
+
+# Protected routes - SuperAdmin
 Disallow: /superadmin-dashboard
 Disallow: /superadmin/
 Disallow: /transactions
 Disallow: /add-superadmin
+Disallow: /chat
 
 Sitemap: https://hrm-portal-frontend.onrender.com/sitemap.xml
