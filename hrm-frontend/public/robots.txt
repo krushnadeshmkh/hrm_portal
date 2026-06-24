@@ -35,12 +35,12 @@ Disallow: /calendar
 Disallow: /meetings
 Disallow: /meeting-room/
 Disallow: /admin/
+Disallow: /chat
 
 # Protected routes - SuperAdmin
 Disallow: /superadmin-dashboard
 Disallow: /superadmin/
 Disallow: /transactions
 Disallow: /add-superadmin
-Disallow: /chat
 
 Sitemap: https://hrm-portal-frontend.onrender.com/sitemap.xml
