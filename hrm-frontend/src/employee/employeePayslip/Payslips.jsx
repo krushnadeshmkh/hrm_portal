@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
-import { Receipt, Download, Eye, Calendar, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { Receipt, Download, Eye, Calendar, DollarSign, TrendingUp, Clock, RefreshCw } from "lucide-react";
 import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -14,6 +14,7 @@ function Payslips() {
     totalEarned: 0,
     averageSalary: 0,
     highestSalary: 0,
+    totalAdvanceDeductions: 0,
     lastThreeMonths: []
   });
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
@@ -40,6 +41,7 @@ function Payslips() {
     statCard1: "linear-gradient(135deg, #059669, #10B981)",
     statCard2: "linear-gradient(135deg, #4F46E5, #6366F1)",
     statCard3: "linear-gradient(135deg, #D97706, #F59E0B)",
+    statCard4: "linear-gradient(135deg, #7C3AED, #8B5CF6)",
     statusBg: isDark ? "#064E3B" : "#ECFDF5",
     statusText: isDark ? "#6EE7B7" : "#059669",
     modalOverlay: isDark ? "rgba(0,0,0,0.7)" : "rgba(15,23,42,0.5)",
@@ -47,6 +49,7 @@ function Payslips() {
     noteText: isDark ? "#FCD34D" : "#92400E",
     deductionRed: "#DC2626",
     deductionGreen: "#059669",
+    buttonPrimary: "#4F46E5",
   };
 
   useEffect(() => {
@@ -70,15 +73,22 @@ function Payslips() {
         headers: { "x-auth-token": token },
       });
       const data = res.data.data || [];
+            console.log(data)
       setPayslips(data);
+
+      
       const totalEarned = data.reduce((sum, p) => sum + (p.net_salary || 0), 0);
       const averageSalary = data.length ? totalEarned / data.length : 0;
       const highestSalary = Math.max(...data.map(p => p.net_salary || 0), 0);
+      const totalAdvanceDeductions = data.reduce((sum, p) => sum + (p.advance_deduction || 0), 0);
+      
       const lastThreeMonths = data.slice(0, 3).map(p => ({
         month: p.pay_period || formatMonth(p.pay_date),
-        amount: p.net_salary
+        amount: p.net_salary,
+        advanceDeduction: p.advance_deduction || 0
       }));
-      setSummary({ totalEarned, averageSalary, highestSalary, lastThreeMonths });
+      
+      setSummary({ totalEarned, averageSalary, highestSalary, totalAdvanceDeductions, lastThreeMonths });
     } catch (error) {
       console.error("Error fetching payslips:", error);
     } finally {
@@ -95,11 +105,15 @@ function Payslips() {
     return new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "long" });
   };
 
-  const formatPayPeriod = (period) => {
-    if (!period) return "N/A";
+
+const formatPayPeriod = (period) => {
+  if (!period) return null;   
+  if (period.includes("-")) {
     const [year, month] = period.split("-");
     return new Date(year, month - 1).toLocaleDateString("en-US", { year: "numeric", month: "long" });
-  };
+  }
+  return period;
+};
 
   const generateHTML = (payslip, month) => {
     const employee = payslip.employee_id;
@@ -146,6 +160,8 @@ function Payslips() {
   .net-label small { display: block; font-size: 0.68rem; opacity: 0.7; margin-top: 2px; }
   .net-amount { color: #fff; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
   .footer { padding: 14px 36px; background: #FAFBFF; border-top: 1px solid #F0F0F7; font-size: 0.7rem; color: #9CA3AF; text-align: center; }
+  .advance-recovery { background: #F0FDF4; border-left: 4px solid #059669; padding: 10px 14px; border-radius: 6px; margin-top: 10px; }
+  .advance-recovery span { font-size: 0.78rem; color: #065F46; }
   @media print {
     body { background: #fff; padding: 0; }
     .slip { box-shadow: none; }
@@ -250,7 +266,11 @@ function Payslips() {
       </div>` : ""}
       ${parseFloat(payslip.advance_deduction || 0) > 0 ? `
       <div class="row">
-        <div><div class="row-label">Advance Recovery</div></div>
+        <div>
+          <div class="row-label">Salary Advance Recovery</div>
+          ${payslip.advance_recoveries && payslip.advance_recoveries.length > 0 ? 
+            `<div class="row-sub">${payslip.advance_recoveries.length} advance(s) recovered this month</div>` : ""}
+        </div>
         <div class="row-value red">- ₹${parseFloat(payslip.advance_deduction).toLocaleString("en-IN")}</div>
       </div>` : ""}
       <div class="subtotal">
@@ -305,6 +325,12 @@ function Payslips() {
     return (payslip.salary || 0) + (payslip.bonus || 0) + (payslip.allowances || 0);
   };
 
+  const getRecoveryStatus = (payslip) => {
+    if (!payslip.advance_deduction || payslip.advance_deduction === 0) return null;
+    const count = payslip.advance_recoveries?.length || 0;
+    return `₹${payslip.advance_deduction.toLocaleString()} recovered (${count} advance${count > 1 ? 's' : ''})`;
+  };
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: t.bg, fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
@@ -349,11 +375,11 @@ function Payslips() {
             <h1 className="payslip-page-title" style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.85rem", fontWeight: "700", color: t.textPrimary, margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
               <Receipt size={28} /> My Payslips
             </h1>
-            <p style={{ color: t.textMuted, fontSize: "0.85rem", marginTop: "6px" }}>View and download your monthly payslips</p>
+            <p style={{ color: t.textMuted, fontSize: "0.85rem", marginTop: "6px" }}>View and download your monthly payslips with advance recovery details</p>
           </div>
 
           {payslips.length > 0 && (
-            <div className="payslip-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "28px" }}>
+            <div className="payslip-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "28px" }}>
               <div style={{ background: t.statCard1, borderRadius: "14px", padding: "18px", color: "#fff", animation: "fadeUp 0.4s ease 0.05s both" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
                   <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>Total Earned</span>
@@ -375,10 +401,17 @@ function Payslips() {
                 </div>
                 <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>₹{summary.highestSalary.toLocaleString()}</div>
               </div>
+              <div style={{ background: t.statCard4, borderRadius: "14px", padding: "18px", color: "#fff", animation: "fadeUp 0.4s ease 0.2s both" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>Advance Recovered</span>
+                  <RefreshCw size={20} opacity={0.8} />
+                </div>
+                <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>₹{summary.totalAdvanceDeductions.toLocaleString()}</div>
+              </div>
             </div>
           )}
 
-          <div style={{ backgroundColor: t.card, borderRadius: "14px", border: `1px solid ${t.cardBorder}`, overflow: "hidden", animation: "fadeUp 0.4s ease 0.2s both", boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(15,23,42,0.05)" }}>
+          <div style={{ backgroundColor: t.card, borderRadius: "14px", border: `1px solid ${t.cardBorder}`, overflow: "hidden", animation: "fadeUp 0.4s ease 0.25s both", boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(15,23,42,0.05)" }}>
             {loading ? (
               <div style={{ textAlign: "center", padding: "50px", color: t.textMuted }}>Loading payslips...</div>
             ) : payslips.length === 0 ? (
@@ -386,8 +419,12 @@ function Payslips() {
             ) : (
               <div>
                 {payslips.map((payslip, index) => {
+                  console.log(payslips)
                   const gross = calculateGrossSalary(payslip);
                   const period = formatPayPeriod(payslip.pay_period) || formatMonth(payslip.pay_date);
+                  const recoveryInfo = getRecoveryStatus(payslip);
+                  const hasAdvanceDeduction = payslip.advance_deduction && payslip.advance_deduction > 0;
+                  
                   return (
                     <div key={payslip._id} className="payslip-card" style={{
                       padding: "18px 24px",
@@ -395,7 +432,7 @@ function Payslips() {
                       display: "flex", justifyContent: "space-between", alignItems: "center",
                       flexWrap: "wrap", gap: "16px"
                     }}>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: "200px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", flexWrap: "wrap" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                             <Calendar size={16} style={{ color: t.textMuted }} />
@@ -406,6 +443,11 @@ function Payslips() {
                           <span style={{ background: t.statusBg, color: t.statusText, padding: "2px 10px", borderRadius: "20px", fontSize: "0.65rem", fontWeight: "600" }}>
                             {payslip.status || "GENERATED"}
                           </span>
+                          {hasAdvanceDeduction && (
+                            <span style={{ background: "#F0FDF4", color: "#059669", padding: "2px 10px", borderRadius: "20px", fontSize: "0.65rem", fontWeight: "600", border: "1px solid #D1FAE5" }}>
+                              <RefreshCw size={10} style={{ marginRight: "4px" }} /> Recovery
+                            </span>
+                          )}
                         </div>
                         <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", fontSize: "0.8rem" }}>
                           <div><span style={{ color: t.textMuted }}>Basic:</span> <strong style={{ color: t.textPrimary }}>₹{payslip.salary?.toLocaleString()}</strong></div>
@@ -413,12 +455,17 @@ function Payslips() {
                           <div><span style={{ color: t.textMuted }}>Deductions:</span> <strong style={{ color: t.deductionRed }}>-₹{parseFloat(payslip.total_deductions || 0).toLocaleString()}</strong></div>
                           <div><span style={{ color: t.textMuted }}>Net:</span> <strong style={{ color: t.deductionGreen, fontSize: "0.9rem" }}>₹{payslip.net_salary?.toLocaleString()}</strong></div>
                         </div>
+                        {recoveryInfo && (
+                          <div style={{ marginTop: "6px", fontSize: "0.7rem", color: t.deductionGreen, background: "#F0FDF4", padding: "4px 10px", borderRadius: "4px", display: "inline-block" }}>
+                            <RefreshCw size={10} style={{ marginRight: "4px" }} /> {recoveryInfo}
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: "flex", gap: "10px" }}>
                         <button onClick={() => setSelectedPayslip(payslip)} className="btn-outline" style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, padding: "8px 14px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "500", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", color: t.textSecondary }}>
                           <Eye size={14} /> View
                         </button>
-                        <button onClick={() => generatePDF(payslip, period)} disabled={downloading} className="btn-outline" style={{ background: t.buttonPrimary || "#4F46E5", color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "500", cursor: downloading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "5px", opacity: downloading ? 0.7 : 1 }}>
+                        <button onClick={() => generatePDF(payslip, period)} disabled={downloading} className="btn-outline" style={{ background: t.buttonPrimary, color: "#fff", border: "none", padding: "8px 14px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "500", cursor: downloading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "5px", opacity: downloading ? 0.7 : 1 }}>
                           <Download size={14} /> {downloading ? "..." : "Download"}
                         </button>
                       </div>
@@ -500,8 +547,15 @@ function Payslips() {
                   </div>
                 )}
                 {selectedPayslip.advance_deduction > 0 && (
-                  <div className="deduction-item">
-                    <span className="deduction-label">Advance Recovery</span>
+                  <div className="deduction-item" style={{ background: "#F0FDF4", padding: "10px 0", borderBottom: `1px solid ${t.border}` }}>
+                    <div>
+                      <span className="deduction-label" style={{ fontWeight: "600", color: "#065F46" }}>Salary Advance Recovery</span>
+                      {selectedPayslip.advance_recoveries && selectedPayslip.advance_recoveries.length > 0 && (
+                        <div style={{ fontSize: "0.65rem", color: t.textMuted, marginTop: "2px" }}>
+                          {selectedPayslip.advance_recoveries.length} advance(s) recovered this month
+                        </div>
+                      )}
+                    </div>
                     <span className="deduction-value deduction-red">- ₹{selectedPayslip.advance_deduction?.toLocaleString()}</span>
                   </div>
                 )}

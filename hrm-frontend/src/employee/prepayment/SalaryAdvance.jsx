@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
-import { HandCoins, CheckCircle, XCircle, Clock, AlertCircle, DollarSign } from "lucide-react";
+import { HandCoins, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, RefreshCw } from "lucide-react";
 import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -18,6 +18,7 @@ function SalaryAdvance() {
   const [submitting, setSubmitting] = useState(false);
   const [employee, setEmployee] = useState(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -41,12 +42,16 @@ function SalaryAdvance() {
     maxAdvanceText: isDark ? "#818CF8" : "#4F46E5",
     errorBg: isDark ? "#2D0F0F" : "#FEE2E2",
     errorText: isDark ? "#F87171" : "#DC2626",
+    successBg: isDark ? "#064E3B" : "#ECFDF5",
+    successText: isDark ? "#6EE7B7" : "#059669",
     statusApprovedBg: isDark ? "#064E3B" : "#ECFDF5",
     statusApprovedText: isDark ? "#6EE7B7" : "#059669",
     statusRejectedBg: isDark ? "#2D0F0F" : "#FEE2E2",
     statusRejectedText: isDark ? "#F87171" : "#DC2626",
     statusPendingBg: isDark ? "#451A03" : "#FEF3C7",
     statusPendingText: isDark ? "#FCD34D" : "#D97706",
+    statusRecoveredBg: isDark ? "#1E1B4B" : "#EEF2FF",
+    statusRecoveredText: isDark ? "#818CF8" : "#4F46E5",
     buttonPrimary: "#4F46E5",
     selectBg: isDark ? "#1E2535" : "#F9FAFB",
     cardBorder: isDark ? "#1E2535" : "#F1F3F9",
@@ -100,16 +105,23 @@ function SalaryAdvance() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
-    if (formData.amount <= 0) {
+    const amount = parseFloat(formData.amount);
+    if (!amount || amount <= 0) {
       setError("Please enter a valid amount");
       return;
     }
 
-    if (employee && formData.amount > employee.salary * 0.5) {
+    if (employee && amount > employee.salary * 0.5) {
       setError(
         `Advance amount cannot exceed 50% of your monthly salary (₹${(employee.salary * 0.5).toLocaleString()})`
       );
+      return;
+    }
+
+    if (!formData.reason.trim()) {
+      setError("Please provide a reason for the advance");
       return;
     }
 
@@ -120,11 +132,10 @@ function SalaryAdvance() {
 
       const payload = {
         employee_id: employee?._id,
-        company_id: employee?.company_id,
-        amount: Number(formData.amount),
-        reason: formData.reason,
+        amount: amount,
+        reason: formData.reason.trim(),
         repayment_months: formData.repayment_months,
-        notes: formData.notes,
+        notes: formData.notes.trim(),
       };
 
       const response = await axios.post(
@@ -133,7 +144,7 @@ function SalaryAdvance() {
         { headers: { "x-auth-token": token } }
       );
 
-      alert("Advance request submitted successfully!");
+      setSuccess("Advance request submitted successfully!");
       setFormData({
         amount: "",
         reason: "",
@@ -154,6 +165,8 @@ function SalaryAdvance() {
     switch(status) {
       case "approved": return <CheckCircle size={20} />;
       case "rejected": return <XCircle size={20} />;
+      case "recovered": return <RefreshCw size={20} />;
+      case "partially_recovered": return <RefreshCw size={20} />;
       default: return <Clock size={20} />;
     }
   };
@@ -162,11 +175,28 @@ function SalaryAdvance() {
     switch(status) {
       case "approved": return { bg: t.statusApprovedBg, color: t.statusApprovedText };
       case "rejected": return { bg: t.statusRejectedBg, color: t.statusRejectedText };
+      case "recovered": return { bg: t.statusRecoveredBg, color: t.statusRecoveredText };
+      case "partially_recovered": return { bg: t.statusRecoveredBg, color: t.statusRecoveredText };
       default: return { bg: t.statusPendingBg, color: t.statusPendingText };
     }
   };
 
+  const getStatusLabel = (status) => {
+    switch(status) {
+      case "approved": return "Approved";
+      case "rejected": return "Rejected";
+      case "recovered": return "Recovered";
+      case "partially_recovered": return "Partial";
+      default: return "Pending";
+    }
+  };
+
   const getMaxAdvance = employee ? employee.salary * 0.5 : 0;
+  const pendingCount = advances.filter(a => a.status === "pending").length;
+  const approvedCount = advances.filter(a => a.status === "approved" || a.status === "partially_recovered").length;
+  const totalOutstanding = advances
+    .filter(a => a.status === "approved" || a.status === "partially_recovered")
+    .reduce((sum, a) => sum + (a.remaining_amount || 0), 0);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: t.bg, fontFamily: "'DM Sans', sans-serif" }}>
@@ -210,6 +240,21 @@ function SalaryAdvance() {
             <p style={{ color: t.textMuted, fontSize: "0.85rem", marginTop: "6px" }}>Request a salary advance with flexible repayment options</p>
           </div>
 
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "24px" }}>
+            <div style={{ background: t.card, borderRadius: "10px", padding: "14px", border: `1px solid ${t.border}` }}>
+              <p style={{ fontSize: "0.7rem", color: t.textMuted, margin: 0 }}>Pending Requests</p>
+              <p style={{ fontSize: "1.5rem", fontWeight: "700", color: t.textPrimary, margin: "4px 0 0" }}>{pendingCount}</p>
+            </div>
+            <div style={{ background: t.card, borderRadius: "10px", padding: "14px", border: `1px solid ${t.border}` }}>
+              <p style={{ fontSize: "0.7rem", color: t.textMuted, margin: 0 }}>Active Advances</p>
+              <p style={{ fontSize: "1.5rem", fontWeight: "700", color: t.textPrimary, margin: "4px 0 0" }}>{approvedCount}</p>
+            </div>
+            <div style={{ background: t.card, borderRadius: "10px", padding: "14px", border: `1px solid ${t.border}` }}>
+              <p style={{ fontSize: "0.7rem", color: t.textMuted, margin: 0 }}>Outstanding Amount</p>
+              <p style={{ fontSize: "1.5rem", fontWeight: "700", color: t.textPrimary, margin: "4px 0 0" }}>₹{totalOutstanding.toLocaleString()}</p>
+            </div>
+          </div>
+
           <div className="emp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "24px" }}>
             <div style={{ backgroundColor: t.card, borderRadius: "14px", border: `1px solid ${t.cardBorder}`, padding: "24px", animation: "fadeUp 0.4s ease 0.1s both", boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(15,23,42,0.05)" }}>
               <h2 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "20px", color: t.textPrimary }}>New Advance Request</h2>
@@ -221,12 +266,23 @@ function SalaryAdvance() {
                     <br />
                     <span style={{ fontSize: "0.7rem" }}>(50% of monthly salary: ₹{employee.salary?.toLocaleString()})</span>
                   </p>
+                  {totalOutstanding > 0 && (
+                    <p style={{ fontSize: "0.75rem", color: t.maxAdvanceText, margin: "6px 0 0" }}>
+                      <strong>Outstanding:</strong> ₹{totalOutstanding.toLocaleString()}
+                    </p>
+                  )}
                 </div>
               )}
               
               {error && (
                 <div style={{ background: t.errorBg, borderRadius: "10px", padding: "12px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", color: t.errorText, fontSize: "0.8rem" }}>
                   <AlertCircle size={16} /> {error}
+                </div>
+              )}
+              
+              {success && (
+                <div style={{ background: t.successBg, borderRadius: "10px", padding: "12px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", color: t.successText, fontSize: "0.8rem" }}>
+                  <CheckCircle size={16} /> {success}
                 </div>
               )}
               
@@ -266,13 +322,16 @@ function SalaryAdvance() {
                     onChange={(e) => setFormData({...formData, repayment_months: Number(e.target.value)})}
                     style={{ width: "100%", padding: "10px 12px", border: `1.5px solid ${t.inputBorder}`, borderRadius: "9px", fontSize: "0.85rem", background: t.selectBg, color: t.textPrimary, cursor: "pointer" }}
                   >
+                    <option value={1}>1 Month</option>
+                    <option value={2}>2 Months</option>
                     <option value={3}>3 Months</option>
+                    <option value={4}>4 Months</option>
                     <option value={6}>6 Months</option>
                     <option value={12}>12 Months</option>
                   </select>
-                  {formData.amount && (
+                  {formData.amount && parseFloat(formData.amount) > 0 && (
                     <p style={{ fontSize: "0.7rem", color: t.textMuted, marginTop: "5px" }}>
-                      Monthly deduction: ₹{(formData.amount / formData.repayment_months).toLocaleString()}
+                      Monthly deduction: ₹{(parseFloat(formData.amount) / formData.repayment_months).toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -291,11 +350,16 @@ function SalaryAdvance() {
                 
                 <button
                   type="submit"
-                  disabled={submitting}
-                  style={{ width: "100%", padding: "11px", background: t.buttonPrimary, color: "#fff", border: "none", borderRadius: "10px", fontSize: "0.85rem", fontWeight: "600", cursor: submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.7 : 1, transition: "opacity 0.18s" }}
+                  disabled={submitting || pendingCount > 0}
+                  style={{ width: "100%", padding: "11px", background: (submitting || pendingCount > 0) ? t.textMuted : t.buttonPrimary, color: "#fff", border: "none", borderRadius: "10px", fontSize: "0.85rem", fontWeight: "600", cursor: (submitting || pendingCount > 0) ? "not-allowed" : "pointer", opacity: (submitting || pendingCount > 0) ? 0.7 : 1, transition: "opacity 0.18s" }}
                 >
-                  {submitting ? "Submitting..." : "Submit Request"}
+                  {submitting ? "Submitting..." : pendingCount > 0 ? "Pending Request Exists" : "Submit Request"}
                 </button>
+                {pendingCount > 0 && (
+                  <p style={{ fontSize: "0.7rem", color: t.textMuted, marginTop: "8px", textAlign: "center" }}>
+                    You already have a pending request. Please wait for it to be processed.
+                  </p>
+                )}
               </form>
             </div>
 
@@ -327,7 +391,7 @@ function SalaryAdvance() {
                             background: statusStyle.bg,
                             color: statusStyle.color
                           }}>
-                            {advance.status.toUpperCase()}
+                            {getStatusLabel(advance.status)}
                           </span>
                         </div>
                         
@@ -342,10 +406,28 @@ function SalaryAdvance() {
                             <span style={{ color: t.textMuted }}>Monthly Deduction:</span>
                             <span style={{ marginLeft: "6px", color: t.textPrimary }}>₹{advance.monthly_deduction?.toLocaleString()}</span>
                           </div>
-                          {advance.status === "approved" && (
+                          {(advance.status === "approved" || advance.status === "partially_recovered") && (
+                            <>
+                              <div>
+                                <span style={{ color: t.textMuted }}>Recovered:</span>
+                                <span style={{ marginLeft: "6px", color: t.textPrimary }}>₹{advance.total_recovered?.toLocaleString()}</span>
+                              </div>
+                              <div>
+                                <span style={{ color: t.textMuted }}>Remaining:</span>
+                                <span style={{ marginLeft: "6px", fontWeight: "500", color: t.statusApprovedText }}>₹{advance.remaining_amount?.toLocaleString()}</span>
+                              </div>
+                            </>
+                          )}
+                          {advance.status === "recovered" && (
                             <div style={{ gridColumn: "span 2" }}>
-                              <span style={{ color: t.textMuted }}>Remaining:</span>
-                              <span style={{ marginLeft: "6px", fontWeight: "500", color: t.statusApprovedText }}>₹{advance.remaining_amount?.toLocaleString()}</span>
+                              <span style={{ color: t.textMuted }}>Fully Recovered</span>
+                              <span style={{ marginLeft: "6px", fontWeight: "500", color: t.statusRecoveredText }}>✓</span>
+                            </div>
+                          )}
+                          {advance.status === "rejected" && advance.rejection_reason && (
+                            <div style={{ gridColumn: "span 2" }}>
+                              <span style={{ color: t.textMuted }}>Rejection Reason:</span>
+                              <span style={{ marginLeft: "6px", color: t.statusRejectedText }}>{advance.rejection_reason}</span>
                             </div>
                           )}
                         </div>

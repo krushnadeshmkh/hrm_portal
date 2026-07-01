@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../layouts/sidebar";
 import MobileTopBar from "../../employee/MobileTopBar";
-import { CheckCircle, XCircle, Clock, Search, DollarSign, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, DollarSign, Trash2, RefreshCw } from "lucide-react";
 import axios from "axios";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -13,7 +13,9 @@ function AdvanceRequests() {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, totalAmount: 0 });
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showRejectModal, setShowRejectModal] = useState(null);
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, recovered: 0, totalAmount: 0 });
   const { isDark } = useTheme();
 
   const name = localStorage.getItem("name") || "Admin";
@@ -40,6 +42,8 @@ function AdvanceRequests() {
     badgeApprovedText: isDark ? "#6EE7B7" : "#059669",
     badgeRejectedBg: isDark ? "#2D0F0F" : "#FEE2E2",
     badgeRejectedText: isDark ? "#F87171" : "#DC2626",
+    badgeRecoveredBg: isDark ? "#1E1B4B" : "#EEF2FF",
+    badgeRecoveredText: isDark ? "#818CF8" : "#4F46E5",
     statIconBg1: isDark ? "#451A03" : "#FFFBEB",
     statIconBg2: isDark ? "#064E3B" : "#ECFDF5",
     statIconBg3: isDark ? "#2D0F0F" : "#FEE2E2",
@@ -92,8 +96,9 @@ function AdvanceRequests() {
       const allRequests = allRes.data.data || [];
       setStats({
         pending: allRequests.filter(r => r.status === "pending").length,
-        approved: allRequests.filter(r => r.status === "approved").length,
+        approved: allRequests.filter(r => r.status === "approved" || r.status === "partially_recovered").length,
         rejected: allRequests.filter(r => r.status === "rejected").length,
+        recovered: allRequests.filter(r => r.status === "recovered" || r.is_fully_recovered).length,
         totalAmount: allRequests.reduce((sum, r) => sum + (r.amount || 0), 0)
       });
     } catch (err) {
@@ -108,13 +113,23 @@ function AdvanceRequests() {
   }, [filter]);
 
   const handleStatusUpdate = async (id, status) => {
+    if (status === "rejected" && !rejectionReason.trim()) {
+      alert("Please provide a rejection reason");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       await axios.put(
         `${API_URL}/api/salary-advance/update-status/${id}`,
-        { status },
+        { 
+          status,
+          rejection_reason: status === "rejected" ? rejectionReason : undefined
+        },
         { headers: { "x-auth-token": token } }
       );
+      setShowRejectModal(null);
+      setRejectionReason("");
       fetchRequests();
     } catch (err) {
       alert(err.response?.data?.error || "Error updating request");
@@ -134,11 +149,15 @@ function AdvanceRequests() {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, isFullyRecovered) => {
+    if (status === "recovered" || isFullyRecovered) {
+      return { bg: t.badgeRecoveredBg, color: t.badgeRecoveredText, label: "Recovered" };
+    }
     const badges = {
       pending: { bg: t.badgePendingBg, color: t.badgePendingText, label: "Pending" },
       approved: { bg: t.badgeApprovedBg, color: t.badgeApprovedText, label: "Approved" },
-      rejected: { bg: t.badgeRejectedBg, color: t.badgeRejectedText, label: "Rejected" }
+      rejected: { bg: t.badgeRejectedBg, color: t.badgeRejectedText, label: "Rejected" },
+      partially_recovered: { bg: t.badgeApprovedBg, color: t.badgeApprovedText, label: "Partial" }
     };
     return badges[status] || badges.pending;
   };
@@ -172,7 +191,7 @@ function AdvanceRequests() {
           .adv-filters { gap: 8px !important; }
           .adv-filter-btn { padding: 6px 14px !important; font-size: 0.75rem !important; }
           .adv-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-          .adv-table-wrap table { min-width: 680px; }
+          .adv-table-wrap table { min-width: 720px; }
           .adv-table-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
           .adv-search-inp { width: 100% !important; }
           .modal-dialog { margin: 16px !important; width: calc(100% - 32px) !important; }
@@ -265,7 +284,7 @@ function AdvanceRequests() {
           </div>
 
           <div className="adv-filters" style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
-            {["pending", "approved", "rejected", "all"].map((status) => (
+            {["pending", "approved", "rejected", "recovered", "all"].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -292,7 +311,7 @@ function AdvanceRequests() {
                     borderRadius: "20px",
                     fontSize: "0.7rem"
                   }}>
-                    {stats[status]}
+                    {stats[status] || 0}
                   </span>
                 )}
               </button>
@@ -309,7 +328,7 @@ function AdvanceRequests() {
               { title: "Pending Requests", value: stats.pending, icon: <Clock size={19} />, bg: t.statIconBg1, color: t.statIconColor1 },
               { title: "Approved", value: stats.approved, icon: <CheckCircle size={19} />, bg: t.statIconBg2, color: t.statIconColor2 },
               { title: "Rejected", value: stats.rejected, icon: <XCircle size={19} />, bg: t.statIconBg3, color: t.statIconColor3 },
-              { title: "Total Amount", value: `₹${stats.totalAmount.toLocaleString()}`, icon: <DollarSign size={19} />, bg: t.statIconBg4, color: t.statIconColor4 },
+              { title: "Recovered", value: stats.recovered, icon: <RefreshCw size={19} />, bg: t.statIconBg4, color: t.statIconColor4 },
             ].map((stat, idx) => (
               <div key={idx} className="stat-card" style={{
                 backgroundColor: t.card, borderRadius: "14px", padding: "18px",
@@ -327,7 +346,7 @@ function AdvanceRequests() {
                   {stat.title}
                 </div>
                 <div className="adv-stat-val" style={{
-                  fontSize: typeof stat.value === "string" && stat.value.startsWith("₹") ? "1.3rem" : "1.8rem",
+                  fontSize: "1.8rem",
                   fontWeight: "700", color: t.textPrimary, lineHeight: 1,
                   fontFamily: "'Playfair Display', serif",
                 }}>
@@ -380,9 +399,9 @@ function AdvanceRequests() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ backgroundColor: t.tableHead }}>
-                    {["Employee", "Amount", "Reason", "Requested", "Status", "Actions"].map((h, i) => (
+                    {["Employee", "Amount", "Reason", "Requested", "Status", "Recovery", "Actions"].map((h, i) => (
                       <th key={i} style={{
-                        padding: "14px 18px", textAlign: i === 5 ? "right" : "left",
+                        padding: "14px 18px", textAlign: i === 6 ? "right" : "left",
                         fontSize: "0.68rem", fontWeight: "600", color: t.textMuted,
                         textTransform: "uppercase", letterSpacing: "0.5px",
                         borderBottom: `1px solid ${t.border}`, whiteSpace: "nowrap",
@@ -396,7 +415,7 @@ function AdvanceRequests() {
                   {loading ? (
                     Array.from({ length: 4 }).map((_, i) => (
                       <tr key={i}>
-                        {[140, 80, 180, 100, 90, 100].map((w, j) => (
+                        {[140, 80, 180, 100, 90, 80, 100].map((w, j) => (
                           <td key={j} style={{ padding: "16px 18px" }}>
                             <div style={{ height: "12px", width: `${w}px`, background: t.skeletonBg, borderRadius: "4px" }} />
                           </td>
@@ -405,13 +424,16 @@ function AdvanceRequests() {
                     ))
                   ) : filteredRequests.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ padding: "50px", textAlign: "center", color: t.textMuted, fontSize: "0.875rem" }}>
+                      <td colSpan="7" style={{ padding: "50px", textAlign: "center", color: t.textMuted, fontSize: "0.875rem" }}>
                         No advance requests found
                       </td>
                     </tr>
                   ) : (
                     filteredRequests.map((req) => {
-                      const statusStyle = getStatusBadge(req.status);
+                      const statusStyle = getStatusBadge(req.status, req.is_fully_recovered);
+                      const isFullyRecovered = req.status === "recovered" || req.is_fully_recovered;
+                      const recoveryProgress = req.amount > 0 ? ((req.total_recovered || 0) / req.amount * 100) : 0;
+                      
                       return (
                         <tr key={req._id} className="request-row" style={{ borderBottom: `1px solid ${t.border}` }}>
                           <td style={{ padding: "12px 18px" }}>
@@ -429,16 +451,16 @@ function AdvanceRequests() {
                                 <div style={{ fontSize: "0.72rem", color: t.textMuted }}>{req.employee_id?.email}</div>
                               </div>
                             </div>
-                           </td>
+                          </td>
                           <td style={{ padding: "12px 18px", fontWeight: "700", color: t.textPrimary, whiteSpace: "nowrap" }}>
                             ₹{req.amount?.toLocaleString()}
-                           </td>
+                          </td>
                           <td style={{ padding: "12px 18px", fontSize: "0.8rem", color: t.textSecondary, maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {req.reason}
-                           </td>
+                          </td>
                           <td style={{ padding: "12px 18px", fontSize: "0.8rem", color: t.textMuted, whiteSpace: "nowrap" }}>
                             {new Date(req.requested_date).toLocaleDateString()}
-                           </td>
+                          </td>
                           <td style={{ padding: "12px 18px" }}>
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: "5px",
@@ -450,9 +472,32 @@ function AdvanceRequests() {
                               <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: statusStyle.color }} />
                               {statusStyle.label}
                             </span>
-                           </td>
+                          </td>
+                          <td style={{ padding: "12px 18px" }}>
+                            {!isFullyRecovered && req.status !== "rejected" && req.status !== "pending" ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: "100px" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.65rem", color: t.textMuted }}>
+                                  <span>Recovered: ₹{(req.total_recovered || 0).toLocaleString()}</span>
+                                  <span>₹{(req.remaining_amount || 0).toLocaleString()}</span>
+                                </div>
+                                <div style={{ width: "100%", height: "4px", background: t.skeletonBg, borderRadius: "4px", overflow: "hidden" }}>
+                                  <div style={{ width: `${Math.min(recoveryProgress, 100)}%`, height: "100%", background: t.buttonApprove, borderRadius: "4px" }} />
+                                </div>
+                              </div>
+                            ) : isFullyRecovered ? (
+                              <span style={{ fontSize: "0.7rem", color: t.badgeRecoveredText, fontWeight: "500" }}>
+                                ✓ Fully Recovered
+                              </span>
+                            ) : req.status === "rejected" ? (
+                              <span style={{ fontSize: "0.65rem", color: t.textMuted }}>
+                                {req.rejection_reason || "Rejected"}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: "0.7rem", color: t.textMuted }}>—</span>
+                            )}
+                          </td>
                           <td style={{ padding: "12px 18px", textAlign: "right" }}>
-                            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", flexWrap: "wrap" }}>
                               {req.status === "pending" && (
                                 <>
                                   <button
@@ -468,7 +513,7 @@ function AdvanceRequests() {
                                     Approve
                                   </button>
                                   <button
-                                    onClick={() => handleStatusUpdate(req._id, "rejected")}
+                                    onClick={() => setShowRejectModal(req._id)}
                                     style={{
                                       background: t.buttonReject, color: "#fff", border: "none",
                                       padding: "5px 12px", borderRadius: "6px", fontSize: "0.7rem",
@@ -493,27 +538,29 @@ function AdvanceRequests() {
                               >
                                 View
                               </button>
-                              <button
-                                onClick={() => handleDelete(req._id)}
-                                style={{
-                                  background: t.buttonDelete, border: "none", padding: "5px 12px",
-                                  borderRadius: "6px", fontSize: "0.7rem", fontWeight: "500",
-                                  cursor: "pointer", color: t.buttonDeleteText, display: "flex",
-                                  alignItems: "center", gap: "4px", transition: "background 0.12s",
-                                }}
-                                onMouseEnter={(e) => e.target.style.background = isDark ? "#3D1A1A" : "#FECACA"}
-                                onMouseLeave={(e) => e.target.style.background = t.buttonDelete}
-                              >
-                                <Trash2 size={12} /> Delete
-                              </button>
+                              {(req.status === "pending" || req.status === "rejected") && (
+                                <button
+                                  onClick={() => handleDelete(req._id)}
+                                  style={{
+                                    background: t.buttonDelete, border: "none", padding: "5px 12px",
+                                    borderRadius: "6px", fontSize: "0.7rem", fontWeight: "500",
+                                    cursor: "pointer", color: t.buttonDeleteText, display: "flex",
+                                    alignItems: "center", gap: "4px", transition: "background 0.12s",
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.background = isDark ? "#3D1A1A" : "#FECACA"}
+                                  onMouseLeave={(e) => e.target.style.background = t.buttonDelete}
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              )}
                             </div>
-                           </td>
-                         </tr>
+                          </td>
+                        </tr>
                       );
                     })
                   )}
                 </tbody>
-               </table>
+              </table>
             </div>
 
             {!loading && filteredRequests.length > 0 && (
@@ -573,12 +620,32 @@ function AdvanceRequests() {
               <p style={{ margin: 0, color: t.textSecondary }}>
                 <strong style={{ color: t.textPrimary }}>Repayment:</strong> {selectedRequest.repayment_months} months (₹{selectedRequest.monthly_deduction?.toLocaleString()}/month)
               </p>
+              {selectedRequest.status !== "pending" && selectedRequest.status !== "rejected" && (
+                <>
+                  <p style={{ margin: 0, color: t.textSecondary }}>
+                    <strong style={{ color: t.textPrimary }}>Recovered:</strong> ₹{selectedRequest.total_recovered?.toLocaleString()}
+                  </p>
+                  <p style={{ margin: 0, color: t.textSecondary }}>
+                    <strong style={{ color: t.textPrimary }}>Remaining:</strong> ₹{selectedRequest.remaining_amount?.toLocaleString()}
+                  </p>
+                </>
+              )}
+              {selectedRequest.status === "recovered" && (
+                <p style={{ margin: 0, color: t.successText, fontWeight: "600" }}>
+                  ✓ Fully Recovered
+                </p>
+              )}
               <p style={{ margin: 0, color: t.textSecondary }}>
                 <strong style={{ color: t.textPrimary }}>Requested:</strong> {new Date(selectedRequest.requested_date).toLocaleString()}
               </p>
               {selectedRequest.approved_date && (
                 <p style={{ margin: 0, color: t.textSecondary }}>
                   <strong style={{ color: t.textPrimary }}>Approved:</strong> {new Date(selectedRequest.approved_date).toLocaleString()}
+                </p>
+              )}
+              {selectedRequest.rejection_reason && (
+                <p style={{ margin: 0, color: t.textSecondary }}>
+                  <strong style={{ color: t.textPrimary }}>Rejection Reason:</strong> <span style={{ color: t.statusRejectedText }}>{selectedRequest.rejection_reason}</span>
                 </p>
               )}
               {selectedRequest.notes && (
@@ -599,6 +666,75 @@ function AdvanceRequests() {
                 onMouseLeave={(e) => e.target.style.opacity = "1"}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRejectModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: t.modalOverlay,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 2000, padding: "16px",
+        }}>
+          <div className="modal-dialog" style={{
+            background: t.card, borderRadius: "16px", maxWidth: "450px",
+            width: "100%", padding: "24px", animation: "fadeUp 0.2s ease",
+            border: `1px solid ${t.border}`,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: t.textPrimary, margin: 0 }}>
+                Reject Request
+              </h2>
+              <button
+                onClick={() => { setShowRejectModal(null); setRejectionReason(""); }}
+                style={{
+                  background: t.buttonView, border: "none", width: "32px", height: "32px",
+                  borderRadius: "8px", cursor: "pointer", color: t.textSecondary,
+                  fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <p style={{ color: t.textSecondary, fontSize: "0.9rem", marginBottom: "16px" }}>
+              Please provide a reason for rejecting this request.
+            </p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              style={{
+                width: "100%", padding: "12px",
+                border: `1.5px solid ${t.inputBorder}`,
+                borderRadius: "9px", fontSize: "0.85rem",
+                color: t.textPrimary, backgroundColor: t.inputBg,
+                resize: "vertical", minHeight: "80px",
+                outline: "none", fontFamily: "inherit",
+              }}
+              placeholder="Enter rejection reason..."
+            />
+            <div style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setShowRejectModal(null); setRejectionReason(""); }}
+                style={{
+                  padding: "8px 18px", border: `1.5px solid ${t.inputBorder}`,
+                  borderRadius: "8px", background: t.card, color: t.textSecondary,
+                  cursor: "pointer", fontWeight: "500", fontSize: "0.85rem",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleStatusUpdate(showRejectModal, "rejected")}
+                style={{
+                  padding: "8px 18px", border: "none",
+                  borderRadius: "8px", background: t.buttonReject,
+                  color: "#fff", cursor: "pointer", fontWeight: "600",
+                  fontSize: "0.85rem",
+                }}
+              >
+                Reject
               </button>
             </div>
           </div>

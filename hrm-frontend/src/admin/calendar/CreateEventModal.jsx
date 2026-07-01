@@ -26,7 +26,7 @@ const CreateEventModal = ({ onClose, onSuccess, initialDate }) => {
     },
     guests: [],
     reminders: [{ method: "notification", minutes: 15 }],
-    visibility: "company",
+    visibility: "private",
   });
   const [guestEmail, setGuestEmail] = useState("");
 
@@ -441,6 +441,32 @@ const CreateEventModal = ({ onClose, onSuccess, initialDate }) => {
               </span>
             ))}
           </div>
+        </div>
+
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{
+            display: "block", fontSize: "0.85rem",
+            fontWeight: "500", color: t.textSecondary,
+            marginBottom: "4px",
+          }}>
+            Who can see this
+          </label>
+          <select
+            name="visibility"
+            value={formData.visibility}
+            onChange={handleChange}
+            style={{
+              width: "100%", padding: "10px 14px",
+              borderRadius: "9px", border: `1.5px solid ${t.inputBorder}`,
+              fontSize: "0.95rem", color: t.textPrimary,
+              backgroundColor: t.inputBg, outline: "none",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            <option value="private">Only me and invited guests</option>
+            <option value="company">Everyone in the company</option>
+            <option value="public">Public</option>
+          </select>
         </div>
 
         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
