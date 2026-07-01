@@ -9,7 +9,7 @@ const {
   getMyAdvances,
   updateAdvanceStatus,
   deleteAdvance
-} = require("../prepayment/salaryAdvanceController");
+} = require("./salaryAdvanceController");
 
 const isAdmin = roleCheck(["manager", "super_admin"]);
 const isEmployee = roleCheck(["employee", "manager", "super_admin"]);

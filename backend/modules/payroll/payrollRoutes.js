@@ -1,9 +1,7 @@
 const express = require("express");
 const router = express.Router();
-
 const auth = require("../../middleware/authMiddleware");
 const roleCheck = require("../../middleware/roleCheck");
-
 const payrollController = require("./payrollController");
 
 const isManager = roleCheck(["manager", "super_admin"]);

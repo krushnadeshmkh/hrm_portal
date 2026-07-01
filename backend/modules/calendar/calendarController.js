@@ -44,7 +44,7 @@ const generateRecurringEvents = (eventData) => {
       guests: eventData.guests || [],
       reminders: eventData.reminders || [],
       attachments: eventData.attachments || [],
-      visibility: eventData.visibility || "company",
+      visibility: eventData.visibility || "private",
       shared_with: eventData.shared_with || [],
       created_by: eventData.created_by,
       company_id: eventData.company_id,
@@ -137,6 +137,7 @@ exports.getEvents = async (req, res) => {
       if (event.visibility === "public") return true;
       if (event.visibility === "company") return true;
       if (event.created_by._id.toString() === req.user.id) return true;
+      if (event.guests.some((g) => g.email === req.user.email)) return true;
       return event.shared_with.some(
         (share) => share.user_id._id.toString() === req.user.id
       );
@@ -215,7 +216,7 @@ exports.createEvent = async (req, res) => {
       guests: guests || [],
       reminders: reminders || [{ method: "notification", minutes: 15 }],
       attachments: attachments || [],
-      visibility: visibility || "company",
+      visibility: visibility || "private",
       shared_with: shared_with || [],
       created_by: req.user.id,
       company_id: req.user.company_id,
@@ -404,6 +405,7 @@ exports.getEventById = async (req, res) => {
       event.visibility === "public" ||
       event.visibility === "company" ||
       event.created_by._id.toString() === req.user.id ||
+      event.guests.some((g) => g.email === req.user.email) ||
       event.shared_with.some(
         (share) => share.user_id._id.toString() === req.user.id
       );

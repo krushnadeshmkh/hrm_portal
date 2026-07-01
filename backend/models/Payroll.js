@@ -28,6 +28,16 @@ const payrollSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+
+  advance_recoveries: [{
+    advance_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SalaryAdvance"
+    },
+    amount: Number,
+    remaining_before: Number,
+    remaining_after: Number
+  }],
   
   total_deductions: { type: Number, default: 0 }, 
 

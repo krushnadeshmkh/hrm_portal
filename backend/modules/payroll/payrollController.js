@@ -1,16 +1,17 @@
 const Payroll = require("../../models/Payroll");
 const Employee = require("../../models/Employee");
 const Company = require("../../models/Company");
-const Department = require("../../models/Department");
 const SalaryAdvance = require("../../models/SalaryAdvance");
-
 const { sendPayslipEmail } = require("../../utils/emailHelper");
 
 exports.getPayrollList = async (req, res) => {
   try {
     const companyId = req.user.company_id;
 
-    const employees = await Employee.find({ company_id: companyId })
+    const employees = await Employee.find({ 
+      company_id: companyId,
+      status: "active"
+    })
       .populate("department_id", "department_name")
       .sort({ name: 1 });
 
@@ -19,6 +20,15 @@ exports.getPayrollList = async (req, res) => {
     for (let emp of employees) {
       const latestPayroll = await Payroll.findOne({ employee_id: emp._id })
         .sort({ pay_date: -1 });
+
+      const activeAdvances = await SalaryAdvance.find({
+        employee_id: emp._id,
+        status: { $in: ["approved", "partially_recovered"] },
+        is_fully_recovered: false
+      });
+
+      const totalOutstanding = activeAdvances.reduce((sum, adv) => sum + adv.remaining_amount, 0);
+      const monthlyAdvanceDeduction = activeAdvances.reduce((sum, adv) => sum + (adv.monthly_deduction || 0), 0);
 
       let payment_status = "Unpaid";
 
@@ -40,24 +50,23 @@ exports.getPayrollList = async (req, res) => {
         name: emp.name,
         email: emp.email,
         department_name: emp.department_id?.department_name || null,
-
-        salary: latestPayroll?.salary || 0,
+        salary: emp.salary,
         bonus: latestPayroll?.bonus || 0,
         allowances: latestPayroll?.allowances || 0,
         deductions: latestPayroll?.deductions || 0,
-        tax: 0,
-        pf: 0,
-        pt: 0,
-        esi: 0,
+        tax: latestPayroll?.tax || 0,
+        pf: latestPayroll?.pf || 0,
+        pt: latestPayroll?.pt || 0,
+        esi: latestPayroll?.esi || 0,
         advance_deduction: latestPayroll?.advance_deduction || 0,
         total_deductions: latestPayroll?.total_deductions || 0,
         last_net_salary: latestPayroll?.net_salary || 0,
-
         pay_date: latestPayroll?.pay_date || null,
         pay_period: latestPayroll?.pay_period || null,
         notes: latestPayroll?.notes || null,
-
         payment_status,
+        outstanding_advances: totalOutstanding,
+        monthly_advance_deduction: monthlyAdvanceDeduction
       });
     }
 
@@ -85,33 +94,56 @@ exports.processPayment = async (req, res) => {
       notes,
     } = req.body;
 
+    const employee = await Employee.findById(employee_id);
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
     const activeAdvances = await SalaryAdvance.find({
       employee_id: employee_id,
-      status: "approved",
+      status: { $in: ["approved", "partially_recovered"] },
+      is_fully_recovered: false,
       remaining_amount: { $gt: 0 }
     });
 
-    const totalAdvanceDeduction = activeAdvances.reduce(
-      (sum, advance) => sum + (advance.monthly_deduction || 0),
-      0
-    );
+    let totalAdvanceDeduction = 0;
+    const recoveryDetails = [];
 
     for (const advance of activeAdvances) {
-      const newRemaining = advance.remaining_amount - (advance.monthly_deduction || 0);
-      advance.remaining_amount = Math.max(0, newRemaining);
-      await advance.save();
+      const months = advance.repayment_months > 0 ? advance.repayment_months : 1;
+      let deductionAmount = advance.monthly_deduction > 0
+        ? advance.monthly_deduction
+        : advance.amount / months;
+
+      if (advance.remaining_amount < deductionAmount) {
+        deductionAmount = advance.remaining_amount;
+      }
+
+      totalAdvanceDeduction += deductionAmount;
+      recoveryDetails.push({
+        advance_id: advance._id,
+        amount: deductionAmount,
+        remaining_before: advance.remaining_amount,
+        remaining_after: advance.remaining_amount - deductionAmount
+      });
     }
 
-    const base = parseFloat(salary || 0);
+    const base = parseFloat(salary || employee.salary || 0);
     const bonusAmt = parseFloat(bonus || 0);
     const allowanceAmt = parseFloat(allowances || 0);
     const customDeductionAmt = parseFloat(deductions || 0);
 
+    const pf = base * 0.12;
+    const pt = base > 15000 ? 200 : 0;
+    const esi = base * 0.0075;
+    const tax = 0;
+
     const grossSalary = base + bonusAmt + allowanceAmt;
-    const totalDeductions = customDeductionAmt + totalAdvanceDeduction;
+    const statutoryDeductions = pf + pt + esi + tax;
+    const totalDeductions = statutoryDeductions + customDeductionAmt + totalAdvanceDeduction;
     const netSalary = grossSalary - totalDeductions;
 
-    const payroll = await Payroll.create({
+    const payroll = new Payroll({
       employee_id,
       salary: base,
       bonus: bonusAmt,
@@ -120,37 +152,64 @@ exports.processPayment = async (req, res) => {
       allowance_reason,
       deductions: customDeductionAmt,
       deduction_reason,
-      pf: 0,
-      pt: 0,
-      tax: 0,
-      esi: 0,
+      pf,
+      pt,
+      tax,
+      esi,
       advance_deduction: totalAdvanceDeduction,
+      advance_recoveries: recoveryDetails,
       total_deductions: totalDeductions,
       net_salary: netSalary,
       pay_date: pay_date || new Date(),
-      pay_period,
+      pay_period: pay_period || `${new Date().getMonth() + 1}/${new Date().getFullYear()}`,
       notes,
     });
 
-    const emp = await Employee.findById(employee_id);
-    const company = await Company.findById(emp.company_id);
+    await payroll.save();
 
-    if (emp && company) {
+    for (const recovery of recoveryDetails) {
+      const advance = await SalaryAdvance.findById(recovery.advance_id);
+      if (advance) {
+        advance.total_recovered += recovery.amount;
+        advance.remaining_amount -= recovery.amount;
+        advance.deducted_amount += recovery.amount;
+
+        advance.recovery_installments.push({
+          payroll_id: payroll._id,
+          amount: recovery.amount,
+          recovered_date: new Date(),
+          pay_period: pay_period || `${new Date().getMonth() + 1}/${new Date().getFullYear()}`
+        });
+
+        if (advance.remaining_amount <= 0) {
+          advance.remaining_amount = 0;
+          advance.is_fully_recovered = true;
+          advance.status = "recovered";
+        } else {
+          advance.status = "partially_recovered";
+        }
+
+        await advance.save();
+      }
+    }
+
+    const company = await Company.findById(employee.company_id);
+    if (employee.email && company) {
       sendPayslipEmail({
-        name: emp.name,
-        email: emp.email,
+        name: employee.name,
+        email: employee.email,
         companyName: company.company_name,
-        employeeId: emp._id,
+        employeeId: employee._id,
         payrollId: payroll._id,
         baseSalary: base,
         bonus: bonusAmt,
         bonusReason: bonus_reason,
         allowances: allowanceAmt,
         allowanceReason: allowance_reason,
-        pf: 0,
-        pt: 0,
-        tds: 0,
-        esi: 0,
+        pf,
+        pt,
+        tds: tax,
+        esi,
         customDeductions: customDeductionAmt,
         customDeductionReason: deduction_reason,
         advanceDeduction: totalAdvanceDeduction,
@@ -158,7 +217,7 @@ exports.processPayment = async (req, res) => {
         grossSalary: grossSalary,
         netSalary,
         payDate: payroll.pay_date,
-        payPeriod: pay_period || "",
+        payPeriod: payroll.pay_period,
         notes: notes || "",
       }).catch(err =>
         console.error("Payslip email failed:", err.message)
@@ -171,11 +230,12 @@ exports.processPayment = async (req, res) => {
       data: {
         ...payroll._doc,
         gross_salary: grossSalary,
-        statutory_deductions: 0,
-        pf: 0,
-        pt: 0,
-        tds: 0,
-        esi: 0,
+        statutory_deductions: statutoryDeductions,
+        advance_recoveries: recoveryDetails,
+        pf,
+        pt,
+        tds: tax,
+        esi,
       },
     });
 
@@ -265,6 +325,28 @@ exports.deletePayroll = async (req, res) => {
       });
     }
 
+    if (payroll.advance_recoveries && payroll.advance_recoveries.length > 0) {
+      for (const recovery of payroll.advance_recoveries) {
+        const advance = await SalaryAdvance.findById(recovery.advance_id);
+        if (advance) {
+          advance.total_recovered -= recovery.amount;
+          advance.remaining_amount += recovery.amount;
+          advance.deducted_amount -= recovery.amount;
+          
+          advance.recovery_installments = advance.recovery_installments.filter(
+            inst => inst.payroll_id.toString() !== id
+          );
+          
+          if (advance.remaining_amount > 0) {
+            advance.is_fully_recovered = false;
+            advance.status = "approved";
+          }
+          
+          await advance.save();
+        }
+      }
+    }
+
     await Payroll.findByIdAndDelete(id);
 
     res.json({
@@ -327,14 +409,21 @@ exports.getAdvanceDeductions = async (req, res) => {
 
     const activeAdvances = await SalaryAdvance.find({
       employee_id: employee_id,
-      status: "approved",
+      status: { $in: ["approved", "partially_recovered"] },
+      is_fully_recovered: false,
       remaining_amount: { $gt: 0 }
     });
 
+    const totalMonthlyDeduction = activeAdvances.reduce((sum, a) => sum + (a.monthly_deduction || 0), 0);
+    const totalOutstanding = activeAdvances.reduce((sum, a) => sum + a.remaining_amount, 0);
+
     res.json({
       success: true,
-      data: activeAdvances,
-      total_deduction: activeAdvances.reduce((sum, a) => sum + (a.monthly_deduction || 0), 0)
+      data: {
+        advances: activeAdvances,
+        total_monthly_deduction: totalMonthlyDeduction,
+        total_outstanding: totalOutstanding
+      }
     });
   } catch (err) {
     console.error(err);
