@@ -25,7 +25,7 @@ export const useSessionValidation = () => {
 
     checkSession();
 
-    const interval = setInterval(checkSession, 15 * 1000);
+    const interval = setInterval(checkSession, 15 *60* 1000);
 
     return () => clearInterval(interval);
   }, []);
