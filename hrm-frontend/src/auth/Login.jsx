@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Loader2, ArrowRight, Shield, Zap, Users } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL || "https://hrm-backend-vvqg.onrender.com";
@@ -11,8 +11,17 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setSessionExpiredMessage(location.state.message);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const loginUser = async (e) => {
     e.preventDefault();
@@ -29,12 +38,12 @@ function Login() {
         const { token } = res.data;
         const { role, name, id, company_id, employee_id, position } = res.data.user;
 
-        localStorage.setItem("token",      token);
-        localStorage.setItem("name",       name);
-        localStorage.setItem("user_id",    id);
+        localStorage.setItem("token", token);
+        localStorage.setItem("name", name);
+        localStorage.setItem("user_id", id);
         localStorage.setItem("company_id", company_id || "");
-        localStorage.setItem("role",       role);
-        localStorage.setItem("true_role",  role);
+        localStorage.setItem("role", role);
+        localStorage.setItem("true_role", role);
         localStorage.setItem("position", position || "");
 
         if (employee_id) {
@@ -42,16 +51,26 @@ function Login() {
         }
 
         switch (role) {
-          case "employee":        navigate("/employee-dashboard");   break;
-          case "company_admin":   navigate("/dashboard");            break;
+          case "employee":
+            navigate("/employee-dashboard");
+            break;
+          case "company_admin":
+            navigate("/dashboard");
+            break;
           case "super_admin":
-          case "software_owner":  navigate("/superadmin-dashboard"); break;
-          default:                navigate("/dashboard");
+          case "software_owner":
+            navigate("/superadmin-dashboard");
+            break;
+          default:
+            navigate("/dashboard");
         }
       }
     } catch (err) {
       if (!err.response) {
         alert("Server is offline. Please check if your backend is running.");
+      } else if (err.response?.status === 401) {
+        alert("Your session has expired. Please login again.");
+        localStorage.clear();
       } else {
         alert(err.response?.data?.msg || err.response?.data?.message || "Invalid Credentials");
       }
@@ -62,8 +81,8 @@ function Login() {
 
   const features = [
     { icon: <Shield size={18} />, text: "Enterprise-grade security" },
-    { icon: <Zap size={18} />,    text: "Real-time workforce analytics" },
-    { icon: <Users size={18} />,  text: "Multi-role access control" },
+    { icon: <Zap size={18} />, text: "Real-time workforce analytics" },
+    { icon: <Users size={18} />, text: "Multi-role access control" },
   ];
 
   return (
@@ -165,7 +184,6 @@ function Login() {
             max-width: 100%;
           }
 
-          /* Hide everything except the logo on mobile */
           .login-hero-text,
           .login-features,
           .login-stats {
@@ -246,6 +264,22 @@ function Login() {
               <p style={s.formSubtitle}>Sign in to your account to continue</p>
             </div>
 
+            {sessionExpiredMessage && (
+              <div style={{
+                backgroundColor: "#FEF2F2",
+                border: "1px solid #FECACA",
+                color: "#991B1B",
+                padding: "12px 16px",
+                borderRadius: "8px",
+                fontSize: "0.875rem",
+                width: "100%",
+                marginBottom: "16px",
+                textAlign: "center"
+              }}>
+                {sessionExpiredMessage}
+              </div>
+            )}
+
             <form onSubmit={loginUser} style={{ width: "100%" }}>
               <div className="f2" style={s.field}>
                 <label style={s.label}>Email address</label>
@@ -262,7 +296,7 @@ function Login() {
                   style={{
                     ...s.input,
                     borderColor: focusedField === "email" ? "#4F46E5" : "#E5E7EB",
-                    boxShadow:   focusedField === "email" ? "0 0 0 3px rgba(79,70,229,0.10)" : "none",
+                    boxShadow: focusedField === "email" ? "0 0 0 3px rgba(79,70,229,0.10)" : "none",
                   }}
                 />
               </div>
@@ -283,7 +317,7 @@ function Login() {
                     ...s.input,
                     paddingRight: "46px",
                     borderColor: focusedField === "password" ? "#4F46E5" : "#E5E7EB",
-                    boxShadow:   focusedField === "password" ? "0 0 0 3px rgba(79,70,229,0.10)" : "none",
+                    boxShadow: focusedField === "password" ? "0 0 0 3px rgba(79,70,229,0.10)" : "none",
                   }}
                 />
                 <button
@@ -308,7 +342,7 @@ function Login() {
                   style={{
                     ...s.submitBtn,
                     opacity: loading ? 0.75 : 1,
-                    cursor:  loading ? "not-allowed" : "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
                   }}
                 >
                   {loading ? (

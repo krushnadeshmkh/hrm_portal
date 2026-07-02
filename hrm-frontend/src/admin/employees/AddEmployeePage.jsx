@@ -128,6 +128,11 @@ function AddEmployee() {
     e.preventDefault();
     if (formData.password.length < 6) { showToast("Password must be at least 6 characters.", "error"); return; }
 
+    if (!formData.manager_id) {
+      showToast("Please select a reporting manager.", "error");
+      return;
+    }
+
     if (formData.salary && (isNaN(parseFloat(formData.salary)) || parseFloat(formData.salary) < 0)) {
       showToast("Please enter a valid salary amount", "error");
       return;
@@ -144,7 +149,7 @@ function AddEmployee() {
         department_id: formData.department_id || undefined,
         designation_id: formData.designation_id || undefined,
         designation: selectedDesignation?.designation_name || "",
-        manager_id: formData.manager_id || undefined,
+        manager_id: formData.manager_id,
         joining_date: formData.joining_date,
         salary: formData.salary ? parseFloat(formData.salary) : null,
       };
@@ -401,7 +406,8 @@ function AddEmployee() {
 
                   <div>
                     <label htmlFor="field-manager" style={labelBase}>
-                      Reporting Manager
+                      Reporting Manager <span aria-hidden="true" style={{ color: "#EF4444" }}>*</span>
+                      <span style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap" }}>(required)</span>
                     </label>
                     <div style={{ position: "relative" }}>
                       <Users size={16} aria-hidden="true" style={iconBase} />
@@ -410,11 +416,13 @@ function AddEmployee() {
                         className="field-input"
                         value={formData.manager_id}
                         onChange={handleChange("manager_id")}
+                        required
+                        aria-required="true"
                         disabled={empLoading}
                         style={{ ...inputBase, appearance: "none", cursor: empLoading ? "not-allowed" : "pointer", color: formData.manager_id ? t.textPrimary : t.textMuted, opacity: empLoading ? 0.6 : 1 }}
                       >
-                        <option value="">
-                          {empLoading ? "Loading..." : managers.length === 0 ? "No managers assigned yet" : "Select Manager (Optional)"}
+                        <option value="" disabled>
+                          {empLoading ? "Loading..." : managers.length === 0 ? "No managers available" : "Select Manager"}
                         </option>
                         {managers.map((emp) => (
                           <option key={emp._id} value={emp._id}>
@@ -430,6 +438,11 @@ function AddEmployee() {
                       <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#4F46E5", fontWeight: "500" }}>
                         ✓ {selectedManager.name}
                         {selectedManager.designation && ` · ${selectedManager.designation}`}
+                      </p>
+                    )}
+                    {managers.length === 0 && !empLoading && (
+                      <p style={{ margin: "6px 0 0", fontSize: "0.7rem", color: isDark ? "#FCD34D" : "#D97706" }}>
+                        ⚠️ No managers found. Please assign a manager first.
                       </p>
                     )}
                   </div>

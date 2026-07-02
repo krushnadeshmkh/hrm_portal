@@ -1,8 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { SessionProvider } from './context/SessionContext';
 import { useGlobalNotification } from './hook/useGlobalNotification';
 import CustomToast from './components/CustomToast';
+import { validateToken } from './utils/auth';
+import { emitSessionExpired } from './utils/sessionEvents';
 
 const Login                = lazy(() => import("./auth/Login"));
 const Register             = lazy(() => import("./auth/Register"));
@@ -85,10 +88,39 @@ const PageLoader = () => (
 );
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const token = localStorage.getItem("token");
-  const role  = localStorage.getItem("role");
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValid, setIsValid] = useState(false);
 
-  if (!token) return <Navigate to="/login" replace />;
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+
+  useEffect(() => {
+    if (!token) {
+      setIsValidating(false);
+      setIsValid(false);
+      return;
+    }
+
+    const valid = validateToken();
+    setIsValid(valid);
+    setIsValidating(false);
+
+    if (!valid) {
+      emitSessionExpired("Your session has expired. Please sign in again.");
+    }
+  }, [token]);
+
+  if (isValidating) {
+    return <PageLoader />;
+  }
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isValid) {
+    return <PageLoader />;
+  }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
     const fallback = role === "employee" ? "/employee-dashboard" : "/dashboard";
@@ -100,12 +132,13 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 const HomeRedirect = () => {
   const token = localStorage.getItem("token");
-  const role  = localStorage.getItem("role");
+  const role = localStorage.getItem("role");
 
   if (!token) return <Home />;
-  if (role === "employee")      return <Navigate to="/employee-dashboard" replace />;
-  if (role === "manager") return <Navigate to="/dashboard" replace />;
-  return <Navigate to="/superadmin-dashboard" replace />;
+  if (role === "employee") return <Navigate to="/employee-dashboard" replace />;
+  if (role === "manager" || role === "company_admin") return <Navigate to="/dashboard" replace />;
+  if (role === "super_admin" || role === "software_owner") return <Navigate to="/superadmin-dashboard" replace />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 function NotificationWrapper({ children }) {
@@ -138,283 +171,285 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
-        <Suspense fallback={<PageLoader />}>
-          <NotificationWrapper>
-            <Routes>
-              <Route path="/" element={<HomeRedirect />} />
+        <SessionProvider>
+          <Suspense fallback={<PageLoader />}>
+            <NotificationWrapper>
+              <Routes>
+                <Route path="/" element={<HomeRedirect />} />
 
-              <Route path="/login"    element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing"  element={<Pricing />} />
-              <Route path="/contact"  element={<Contact />} />
-             
-              <Route path="/employee-dashboard" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeeDashboard />
-                </ProtectedRoute>
-              } />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/contact" element={<Contact />} />
 
-              <Route path="/dashboard" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AdminDashboardPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee-dashboard" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeeDashboard />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/calendar" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <CalendarPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/meetings" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <MeetingsPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/calendar" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <CalendarPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/meeting-room/:meetingCode" element={
-                <ProtectedRoute allowedRoles={["manager", "employee"]}>
-                  <MeetingRoom />
-                </ProtectedRoute>
-              } />
+                <Route path="/meetings" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <MeetingsPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/calendar" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeeCalendar />
-                </ProtectedRoute>
-              } />
+                <Route path="/meeting-room/:meetingCode" element={
+                  <ProtectedRoute allowedRoles={["manager", "employee", "company_admin"]}>
+                    <MeetingRoom />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/meetings" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeeMeetings />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/calendar" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeeCalendar />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/admin-attendance" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AdminAttendancePage />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/meetings" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeeMeetings />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/add-employee" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AddEmployee />
-                </ProtectedRoute>
-              } />
+                <Route path="/admin-attendance" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AdminAttendancePage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/update-employee" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <UpdateEmployee />
-                </ProtectedRoute>
-              } />
+                <Route path="/add-employee" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AddEmployee />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/departments" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <DepartmentsPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/update-employee" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <UpdateEmployee />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/holidays" element={
-                <ProtectedRoute allowedRoles={["employee", "manager"]}>
-                  <Holidays />
-                </ProtectedRoute>
-              } />
+                <Route path="/departments" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <DepartmentsPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/leaves" element={
-                <ProtectedRoute allowedRoles={["employee", "manager"]}>
-                  <Leaves />
-                </ProtectedRoute>
-              } />
+                <Route path="/holidays" element={
+                  <ProtectedRoute allowedRoles={["employee", "manager", "company_admin"]}>
+                    <Holidays />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/chat" element={
-                <ProtectedRoute allowedRoles={["manager", "employee"]}>
-                  <ChatPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/leaves" element={
+                  <ProtectedRoute allowedRoles={["employee", "manager", "company_admin"]}>
+                    <Leaves />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/payroll" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <Payroll />
-                </ProtectedRoute>
-              } />
+                <Route path="/chat" element={
+                  <ProtectedRoute allowedRoles={["manager", "employee", "company_admin"]}>
+                    <ChatPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/designations" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <Designations />
-                </ProtectedRoute>
-              } />
+                <Route path="/payroll" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <Payroll />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/support" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AdminSupportPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/designations" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <Designations />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/appreciation" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AppreciationPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/support" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AdminSupportPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/letter" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <LetterPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/appreciation" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AppreciationPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/policy" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <PolicyPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/letter" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <LetterPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/admin/advance-requests" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AdvanceRequests />
-                </ProtectedRoute>
-              } />
+                <Route path="/policy" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <PolicyPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/admin/increment-promotion" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <IncrementPromotion />
-                </ProtectedRoute>
-              } />
+                <Route path="/admin/advance-requests" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AdvanceRequests />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/admin/warnings" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AdminWarnings />
-                </ProtectedRoute>
-              } />
+                <Route path="/admin/increment-promotion" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <IncrementPromotion />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/admin/resignations" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AdminResignations />
-                </ProtectedRoute>
-              } />
+                <Route path="/admin/warnings" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AdminWarnings />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/admin/complaints" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AdminComplaints />
-                </ProtectedRoute>
-              } />
+                <Route path="/admin/resignations" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AdminResignations />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/profile" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <Profile />
-                </ProtectedRoute>
-              } />
+                <Route path="/admin/complaints" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AdminComplaints />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/attendance" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <MarkAttendance />
-                </ProtectedRoute>
-              } />
+                <Route path="/profile" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <Profile />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employeePolicies" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeePolicies />
-                </ProtectedRoute>
-              } />
+                <Route path="/attendance" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <MarkAttendance />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employeeLetters" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeeLetters />
-                </ProtectedRoute>
-              } />
+                <Route path="/employeePolicies" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeePolicies />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/appreciations" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <Appreciations />
-                </ProtectedRoute>
-              } />
+                <Route path="/employeeLetters" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeeLetters />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/assign-task" element={
-                <ProtectedRoute allowedRoles={["manager"]}>
-                  <AssignTask />
-                </ProtectedRoute>
-              } />
+                <Route path="/appreciations" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <Appreciations />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/salary-advance" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <SalaryAdvance />
-                </ProtectedRoute>
-              } />
+                <Route path="/assign-task" element={
+                  <ProtectedRoute allowedRoles={["manager", "company_admin"]}>
+                    <AssignTask />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/career-history" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <CareerHistory />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/salary-advance" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <SalaryAdvance />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/payslips" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeePayslips />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/career-history" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <CareerHistory />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/warnings" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeeWarnings />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/payslips" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeePayslips />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/resignation" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeeResignation />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/warnings" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeeWarnings />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/employee/complaints" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <EmployeeComplaints />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/resignation" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeeResignation />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/my-tasks" element={
-                <ProtectedRoute allowedRoles={["employee"]}>
-                  <MyTasks />
-                </ProtectedRoute>
-              } />
+                <Route path="/employee/complaints" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <EmployeeComplaints />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/superadmin-dashboard" element={
-                <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
-                  <SuperadminDashboard />
-                </ProtectedRoute>
-              } />
+                <Route path="/my-tasks" element={
+                  <ProtectedRoute allowedRoles={["employee"]}>
+                    <MyTasks />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/superadmin/website-settings" element={
-                <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
-                  <WebsiteSettingsPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/superadmin-dashboard" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
+                    <SuperadminDashboard />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/superadmin/companiespage" element={
-                <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
-                  <CompaniesPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/superadmin/website-settings" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
+                    <WebsiteSettingsPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/superadmin/pricing" element={
-                <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
-                  <PricingPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/superadmin/companiespage" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
+                    <CompaniesPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/transactions" element={
-                <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
-                  <TransactionsPage />
-                </ProtectedRoute>
-              } />
+                <Route path="/superadmin/pricing" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
+                    <PricingPage />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/add-superadmin" element={
-                <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
-                  <AddSuperadminPage />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </NotificationWrapper>
-        </Suspense>
+                <Route path="/transactions" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
+                    <TransactionsPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/add-superadmin" element={
+                  <ProtectedRoute allowedRoles={["super_admin", "software_owner"]}>
+                    <AddSuperadminPage />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </NotificationWrapper>
+          </Suspense>
+        </SessionProvider>
       </Router>
     </ThemeProvider>
   );
