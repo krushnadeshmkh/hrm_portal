@@ -9,13 +9,13 @@ const { sendWelcomeEmail } = require("../../utils/emailHelper");
 exports.getEmployees = async (req, res) => {
   try {
     const companyId = req.user.company_id;
-    
+
     const employees = await Employee.find({ company_id: companyId })
       .populate("user_id", "name email phone avatar_url role")
       .populate("department_id", "department_name")
       .populate("designation_id", "designation_name")
       .populate("manager_id", "name email");
-    
+
     const formattedEmployees = employees.map(emp => ({
       _id: emp._id,
       name: emp.user_id?.name || emp.name || "Unknown",
@@ -29,9 +29,9 @@ exports.getEmployees = async (req, res) => {
       position: emp.position || "employee",
       status: emp.status || "active",
       manager: emp.manager_id ? { name: emp.manager_id.name, email: emp.manager_id.email } : null,
-      role:emp.user_id?.role || emp.role || ""
+      role: emp.user_id?.role || emp.role || ""
     }));
-    
+
     res.json({ success: true, data: formattedEmployees });
   } catch (err) {
     console.error("getEmployees Error:", err);
@@ -42,14 +42,14 @@ exports.getEmployees = async (req, res) => {
 exports.addEmployee = async (req, res) => {
   try {
     const {
-      name, 
-      email, 
-      password, 
+      name,
+      email,
+      password,
       phone,
-      department_id, 
-      designation_id, 
+      department_id,
+      designation_id,
       designation,
-      manager_id, 
+      manager_id,
       joining_date,
       salary
     } = req.body;
@@ -65,6 +65,13 @@ exports.addEmployee = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "Password must be at least 6 characters.",
+      });
+    }
+
+    if (!manager_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Reporting manager is required.",
       });
     }
 
@@ -87,9 +94,9 @@ exports.addEmployee = async (req, res) => {
     }
 
     if (department_id) {
-      const department = await Department.findOne({ 
-        _id: department_id, 
-        company_id: companyId 
+      const department = await Department.findOne({
+        _id: department_id,
+        company_id: companyId
       });
       if (!department) {
         return res.status(400).json({
@@ -100,9 +107,9 @@ exports.addEmployee = async (req, res) => {
     }
 
     if (designation_id) {
-      const designationRecord = await Designation.findOne({ 
-        _id: designation_id, 
-        company_id: companyId 
+      const designationRecord = await Designation.findOne({
+        _id: designation_id,
+        company_id: companyId
       });
       if (!designationRecord) {
         return res.status(400).json({
@@ -112,17 +119,15 @@ exports.addEmployee = async (req, res) => {
       }
     }
 
-    if (manager_id) {
-      const manager = await Employee.findOne({ 
-        _id: manager_id, 
-        company_id: companyId 
+    const manager = await Employee.findOne({
+      _id: manager_id,
+      company_id: companyId
+    });
+    if (!manager) {
+      return res.status(400).json({
+        success: false,
+        error: "Selected manager does not belong to this company or does not exist.",
       });
-      if (!manager) {
-        return res.status(400).json({
-          success: false,
-          error: "Selected manager does not belong to this company or does not exist.",
-        });
-      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -145,14 +150,14 @@ exports.addEmployee = async (req, res) => {
       department_id: department_id || null,
       designation_id: designation_id || null,
       designation: designation || null,
-      manager_id: manager_id || null,
+      manager_id: manager_id,
       company_id: companyId,
       joining_date: joining_date ? new Date(joining_date) : new Date(),
-      salary: salary && salary !== "" ? Number(salary) : 0, 
+      salary: salary && salary !== "" ? Number(salary) : 0,
     };
 
     const employee = await Employee.create(employeeData);
-    
+
     await LeaveBalance.create({
       employee_id: employee._id,
       leave_type: "Annual",
@@ -188,7 +193,7 @@ exports.addEmployee = async (req, res) => {
 
   } catch (err) {
     console.error("addEmployee Error:", err);
-  
+
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
@@ -203,9 +208,9 @@ exports.addEmployee = async (req, res) => {
       });
     }
 
-    res.status(500).json({ 
-      success: false, 
-      error: err.message || "Internal server error while adding employee." 
+    res.status(500).json({
+      success: false,
+      error: err.message || "Internal server error while adding employee."
     });
   }
 };
@@ -315,14 +320,14 @@ exports.updateEmployeeSalary = async (req, res) => {
 exports.getCurrentEmployee = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         error: "User not found.",
       });
     }
-    
+
     const employee = await Employee.findOne({
       user_id: user._id,
     })
